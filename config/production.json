@@ -1,0 +1,4 @@
+{
+    "mongoURI":"mongodb+srv://tongsuen:tongsuen888@cluster0.gme1s.mongodb.net/WMS?retryWrites=true&w=majority",
+    "jwtSecret":"wms_tongsuen"
+}

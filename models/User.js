@@ -1,0 +1,84 @@
+const mongoose = require('mongoose');
+
+const UserSchema = new mongoose.Schema({
+    name:{
+        type:String,
+        required:true
+    },
+    last_name:{
+        type:String,
+    },
+    user_name:{
+        type:String,
+    },
+    avatar:{
+        type:String,
+    },
+    expo_token:{
+        type:String,
+    },
+    email:{
+        type:String,
+        required:true,
+        unique:true,
+    },
+    password:{
+        type:String,
+        required:true,
+    },
+    admin:{
+        type:Boolean,
+        default:false,
+    },
+    position:{
+        type:String,
+    },
+    address:{
+        type:String,
+    },
+    province:{
+        type:String,
+    },
+    passcode:{
+        type:String,
+    },
+    company:{
+        type:String,
+    },
+    personal_id:{
+        type:String,
+    },
+    website:{
+        type:String,
+    },
+    tel:{
+        type:String,
+    },
+    tel_2:{
+        type:String,
+    },
+    fax:{
+        type:String,
+    },
+    role:{
+        type:Number,
+        default:1
+    },
+    is_person:{
+        type:Boolean,
+        default:true
+    },
+    create_date : {
+        type : Date,
+        default : Date.now
+    },
+    token:{
+        type:String,
+    },
+    is_active:{
+        type:Boolean,
+        default:true
+    },
+});
+UserSchema.index({name:'text',email:'text'});
+module.exports = User = mongoose.model('user',UserSchema)
