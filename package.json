@@ -5,8 +5,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server",
-    "server": "nodemon server",
-    "build": "react-scripts build"
+    "server": "nodemon server"
   },
   "author": "",
   "license": "ISC",
@@ -30,7 +29,6 @@
     "node-schedule": "^2.1.0",
     "nodemailer": "^6.7.2",
     "react-scripts": "4.0.3",
-    "react-to-print": "^2.14.5",
     "request": "^2.88.2",
     "socket.io": "^4.5.1",
     "uuid": "^8.3.2"
