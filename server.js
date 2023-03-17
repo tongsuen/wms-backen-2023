@@ -30,7 +30,9 @@ connectDB();
 // Init Middleware
 app.use(express.json())
 app.use(cors())
-
+app.get('/', (req, res) => {
+  res.send('wms server running...')
+})
 // Setup the logger middleware
 
 //const accessLogStream = fs.createWriteStream(path.join(__dirname, 'logs.log'), { flags: 'a' });
