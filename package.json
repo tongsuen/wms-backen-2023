@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node server",
     "server": "nodemon server",
-    "build": "react-scripts build",
+    "build": "react-scripts build"
   },
   "author": "",
   "license": "ISC",
