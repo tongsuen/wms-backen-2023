@@ -2,27 +2,33 @@ const mongoose = require('mongoose');
 
 const InvoiceSchema = new mongoose.Schema({
 
-    inventory:{
-        type:mongoose.Schema.Types.ObjectId,
-        ref:'inventory',
-    },
-    stock:{
-        type:mongoose.Schema.Types.ObjectId,
-        ref:'stocks',
-    },
     user:{
         type:mongoose.Schema.Types.ObjectId,
         ref:'user',
     },
-    name:{
+
+    list:[{
+        stock:{
+            type:mongoose.Schema.Types.ObjectId,
+            ref:'stocks',
+        },
+        name:{
             type:String,
-    },
-    lot_number:{
+        },
+        lot_number:{
             type:String,
-     },
-    product_code:{
+        },
+        product_code:{
             type:String,
-     },
+        },
+        unit:{
+            type:String,
+        },
+        amount:{
+            type:Number,
+            default:0
+        }
+    }],
     zone_out_name:{
         type:String,
     },  
@@ -64,6 +70,20 @@ const InvoiceSchema = new mongoose.Schema({
     status:{
         type:Number,
         default:1
+    },
+    remark:{
+        type:String,
+},
+    from:{
+            type:String,
+    },
+
+    to:{
+        type:String,
+    },
+
+    tranport:{
+        type:String,
     },
     create_date : {
         type : Date,

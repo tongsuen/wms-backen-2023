@@ -18,7 +18,7 @@ const StocksSchema = new mongoose.Schema({
         type:mongoose.Schema.Types.ObjectId,
         ref:'note',
     }],
-    moveFrom:{
+    moveFrom:[{
         zone:{
             type:mongoose.Schema.Types.ObjectId,
             ref:'zone',
@@ -33,7 +33,7 @@ const StocksSchema = new mongoose.Schema({
         amount:{
             type:Number
         }
-    },
+    }],
 
     name:{
             type:String,
@@ -49,7 +49,12 @@ const StocksSchema = new mongoose.Schema({
         type:Number,
         default:0
     },
-
+    group_unit:{
+        type:String,
+    },
+    unit:{
+        type:String,
+    },
     prepare_out:{
         type:Number,
         default:0

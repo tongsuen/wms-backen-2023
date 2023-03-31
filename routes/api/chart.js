@@ -288,4 +288,38 @@ router.post('/history', auth,async (req,res)=> {
         res.status(500).json({message:err.message,error:true})
     }
 })
+
+router.post('/percent_item_in_stock', auth,async (req,res)=> {
+    const {name,user} = req.body;
+    try {
+        Stocks.find({ is_active: true }, { name: 1, current_amount: 1 }).lean().exec(function(err, stocks) {
+            if (err) {
+              // handle error
+            } else {
+              const totalAmount = stocks.reduce((sum, stock) => sum + stock.current_amount, 0);
+              const groupedStocks = stocks.reduce((result, stock) => {
+                const existingStock = result.find(s => s._id === stock.name);
+                if (existingStock) {
+                  existingStock.percent += (stock.current_amount / totalAmount) * 100;
+                } else {
+                  result.push({
+                    _id: stock.name,
+                    name: stock.name,
+                    percent: (stock.current_amount / totalAmount) * 100
+                  });
+                }
+                return result;
+              }, []);
+              groupedStocks.sort((a, b) => b.percent - a.percent); 
+
+              return res.json({ groupedStocks });
+            }
+          });
+          
+    }catch(err){
+        console.log(err.message);
+        return res.status(500).json({message:err.message,error:true})
+    }
+})
+
 module.exports = router; 

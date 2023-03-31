@@ -22,6 +22,7 @@ const InventorySchema = new mongoose.Schema({
     weight:{
         type:Number,
     },
+  
     lot_number:{
         type:String,
         required:true,
@@ -44,10 +45,10 @@ const InventorySchema = new mongoose.Schema({
         type:Number,
     },
     mfg_date : {
-        type : String,
+        type : Date,
     },
     exp_date : {
-        type : String,
+        type : Date,
     },
     images:[
         {

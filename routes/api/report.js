@@ -21,16 +21,27 @@ const Note = require('../../models/Notes')
 
 router.post('/will_exp_stock',auth,async (req,res)=> {
     const { range = 30 } = req.body;
-    console.log(range)
-    const today = new Date();
-    const thirtyDaysLater = new Date(today.getFullYear(), today.getMonth(), today.getDate() + range);
-
-    const expiringInventory = await Inventory.find({ exp_date: { $gte: today, $lte: thirtyDaysLater } });
-
-    const expiringStocks = await Stocks.find({ inventory: { $in: expiringInventory.map(item => item._id) },is_active:true }).populate('zone').populate('inventory');
-
+   
+    try {
+      const today = new Date();
+      const thirtyDaysLater = new Date(today.getFullYear(), today.getMonth(), today.getDate() + range);
+      console.log(thirtyDaysLater)
+      const expiringInventory = await Inventory.find({ exp_date: { $gte: today, $lte: thirtyDaysLater } });
+   
+      const expiringStocks = await Stocks.find({ inventory: { $in: expiringInventory.map(item => item._id) },is_active:true }).populate('zone').populate('inventory');
     
-    return res.json(expiringStocks)
+      return res.json(expiringStocks)
+    } catch (error) {
+    
+       res.status(500).send(err.message)
+    }
+
+})
+
+router.post('/exp_stock',auth,async (req,res)=> {
+  const expiredInventory = await Inventory.find({ exp_date: { $lte: new Date() } });
+  const expiredStocks = await Stocks.find({ inventory: { $in: expiredInventory.map(item => item._id) }, is_active: true }).populate('zone').populate('inventory');
+  return res.json(expiredStocks);
 })
 router.post('/stock_with_notes',auth,async (req,res)=> {
     const { range = 5 } = req.body;
@@ -386,7 +397,6 @@ router.post('/report_most_import', auth, async (req, res) => {
   return res.json(result);
 });
 
-  
 router.post('/report_most_export', auth, async (req, res) => {
   const {user_id,range = 400} = req.body
 
@@ -396,41 +406,46 @@ router.post('/report_most_export', auth, async (req, res) => {
   console.log(startDate)
   let matchQuery = {
       type: 2 ,
-      create_date: { $gte: startDate, $lte: endDate } // Only consider invoices within the date range
-
+      create_date: { $gte: startDate, $lte: endDate }, // Only consider invoices within the date range
+      status:2,
   }
   try {
     if(user_id) matchQuery.user =  mongoose.Types.ObjectId(user_id)
     const result = await Invoice.aggregate([
       {
-        $match:matchQuery
+        $match: matchQuery
+      },
+      {
+        $unwind: "$list"
       },
       {
         $group: {
           _id: {
             month: { $month: "$create_date" },
             year: { $year: "$create_date" },
-            stock: "$stock"
+            stock_name: "$list.name"
           },
-          exported_amount: { $sum: "$amount" }
+          total_exported: { $sum: "$list.amount" }
         }
       },
-      
+      {
+        $sort: { "_id.year": -1, "_id.month": -1, total_exported: -1 }
+      },
       {
         $group: {
           _id: {
             month: "$_id.month",
             year: "$_id.year"
           },
-          top_stock: { $first: "$_id.stock" }, // Get the stock with the highest exported amount in each month
-          exported_amount: { $first: "$exported_amount" }
+          top_stock: { $first: "$_id.stock_name" },
+          total_exported: { $first: "$total_exported" }
         }
       },
       {
         $lookup: {
-          from: "stocks", // The name of the Stock collection
+          from: "stocks",
           localField: "top_stock",
-          foreignField: "_id",
+          foreignField: "name",
           as: "stock"
         }
       },
@@ -439,16 +454,14 @@ router.post('/report_most_export', auth, async (req, res) => {
           _id: 0,
           month: "$_id.month",
           year: "$_id.year",
-          stock: {
-            id: { $arrayElemAt: ["$stock._id", 0] },
-            name: { $arrayElemAt: ["$stock.name", 0] }
-          },
-          exported_amount: 1
+          stock_id: { $arrayElemAt: ["$stock._id", 0] },
+          stock_name: "$top_stock",
+          total_exported: 1
         }
       },
       {
-        $sort: { year: -1, month: -1 } // Sort by year, month, and exported amount
-      },
+        $sort: { year: -1, month: -1 }
+      }
     ]);
     return res.json(result);
   } catch (error) {
