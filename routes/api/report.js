@@ -95,16 +95,54 @@ router.post('/stock_with_notes',auth,async (req,res)=> {
       return res.json(stkList)
 })
 router.post('/report_history',auth,async (req,res)=> {
-    const { start_date, end_date } = req.body;
-
+    const { range, userId,searchText } = req.body;
+    console.log(req.body)
+    let dateFilter = null;
+    switch (range) {
+      case 'last3':
+        dateFilter = new Date();
+        dateFilter.setMonth(dateFilter.getMonth() - 3);
+        break;
+      case 'last6':
+        dateFilter = new Date();
+        dateFilter.setMonth(dateFilter.getMonth() - 6);
+        break;
+      case 'last12':
+        dateFilter = new Date();
+        dateFilter.setFullYear(dateFilter.getFullYear() - 1);
+        break;
+      default:
+        dateFilter = new Date();
+        dateFilter.setFullYear(dateFilter.getFullYear() - 1);
+        break;
+    }
+    
+    let matchQuery =  { 
+     
+        create_date: { $gte: dateFilter },
+      
+      } 
+    if(userId){
+        matchQuery =  { 
+            ...matchQuery,
+            user:  mongoose.Types.ObjectId(userId),
+            
+          } 
+    }
+    console.log("==>")
+    console.log(matchQuery)
+    if(searchText){
+        matchQuery = {...matchQuery, $or: [
+            { lot_number: { $regex: searchText, $options: 'i' } },
+            { product_name: { $regex: searchText, $options: 'i' } },
+            { name: { $regex: searchText, $options: 'i' } }
+          ]}
+    }
     const pipeline = [
     {
-        $match: {
-        create_date: {
-            $gte: new Date(start_date),
-            $lte: new Date(end_date)
-        }
-        }
+      
+        $match:matchQuery
+      
     },
     {
         $group: {
@@ -137,6 +175,103 @@ router.post('/report_history',auth,async (req,res)=> {
     
     return res.json(stats)
 })
+router.post('/report_import', auth, async (req, res) => {
+  const { range, userId,searchText,type = 1 } = req.body;
+  console.log(req.body)
+  let dateFilter = null;
+  switch (range) {
+    case 'last3':
+      dateFilter = new Date();
+      dateFilter.setMonth(dateFilter.getMonth() - 3);
+      break;
+    case 'last6':
+      dateFilter = new Date();
+      dateFilter.setMonth(dateFilter.getMonth() - 6);
+      break;
+    case 'last12':
+      dateFilter = new Date();
+      dateFilter.setFullYear(dateFilter.getFullYear() - 1);
+      break;
+    default:
+      dateFilter = new Date();
+      dateFilter.setFullYear(dateFilter.getFullYear() - 1);
+      break;
+  }
+  
+  let matchQuery =  { 
+      type: type, 
+      create_date: { $gte: dateFilter },
+     
+    } 
+  if(userId){
+      matchQuery =  { 
+          ...matchQuery,
+          user:  mongoose.Types.ObjectId(userId),
+          
+        } 
+  }
+
+  console.log(matchQuery)
+  if(searchText){
+      matchQuery = {...matchQuery, $or: [
+          { lot_number: { $regex: searchText, $options: 'i' } },
+          { product_name: { $regex: searchText, $options: 'i' } },
+          { name: { $regex: searchText, $options: 'i' } }
+        ]}
+  }
+  const result = await Invoice.aggregate([
+    // Match type 2 invoices for the given user ID and date range
+    { 
+      $match:matchQuery
+    },
+    // Project a new field "month" using the $dateToString operator
+    {
+      $project: {
+        month: { $dateToString: { format: "%Y-%m", date: "$create_date" } },
+        inventory: 1,
+        amount: 1
+      }
+    },
+    // Join the stock collection to retrieve the name field
+    {
+      $lookup: {
+        from: "inventory",
+        localField: "inventory",
+        foreignField: "_id",
+        as: "inventoryInfo"
+      }
+    },
+    // Group the invoices by month, stock, and stock name and count the number of invoices in each group
+    {
+      $group: {
+        _id: {
+          month: "$month",
+          inventory: "$inventory",
+          name: { $arrayElemAt: [ "$inventoryInfo.name", 0 ] }
+        },
+        count: { $sum: 1 },
+        total_amount: { $sum: "$amount" }
+      }
+    },
+    // Project the output to show the month, stock, stock name, count, and total amount fields
+    {
+      $project: {
+        month: "$_id.month",
+        inventory: "$_id.inventory",
+        name: "$_id.name",
+        count: 1,
+        total_amount: 1,
+        _id: 0
+      }
+    },
+    // Sort the results by month in ascending order
+    { $sort: { month: 1 } }
+  ]);
+
+  console.log(result);
+  return res.json(result);
+});
+
 router.post('/report_export', auth, async (req, res) => {
     const { range, userId,searchText } = req.body;
     console.log(req.body)
@@ -603,5 +738,49 @@ router.post('/report_data', auth,async (req,res)=> {
         res.status(500).send(err.message)
     }
 })
+router.get('/report_diff_history',async (req,res)=> {
+  const { } = req.body;
+  try {
+    const month1 = 3;
+    const month2 = 4;
+    
+    // filter the documents for each month and convert to sets
+    const docs1 = await StocksHistory.find({ history: "642566104397df6b6a910c8f" });
+    const docs2 = await StocksHistory.find({ history: "642aa3e99e70e0c985b4396e" });
+    let array_added = []
+    let array_old_added = []
+    for (let i = 0; i < docs2.length; i++) {
+      const stk = docs2[i];
+       console.log(stk.stock)
+      for (let j = 0; j < docs1.length; j++) {
+        const stk_old = docs1[j];
+        //console.log(j)
+        if(stk.stock.toString() === stk_old.stock.toString()){
+      
+          
+        }
+        else{
 
+          console.log("vv===vv")
+          console.log(stk_old.stock)
+          array_added.push(stk)
+          break
+        }
+      }
+    }
+    console.log(array_old_added.length)
+    console.log(array_added.length)
+    // console.log('Removed:', removed.length);
+    // console.log('Changed:', changed.length);
+    return res.status(400).send({
+    
+      // removed:removed,
+      // changed:changed
+    })
+
+  }catch(err){
+      console.log(err.message);
+      res.status(500).send(err.message)
+  }
+})
 module.exports = router; 

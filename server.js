@@ -68,6 +68,7 @@ if(process.env.NODE_ENV == 'production'){
 }
 io.on('connection', (socket) => {
     console.log("Socket connected: " + socket.id);
+    socket.emit('hello', 'say hi to user');
     socket.on('action', (action) => {
         //console.log('action')
       if(action.type === 'server/join'){
@@ -80,7 +81,12 @@ io.on('connection', (socket) => {
       else if(action.type === 'server/join_admin'){
          socket.join('admin');
          console.log('join admin')
+         console.log(action.data._id)
        }
+       else if(action.type === 'join_admin'){
+        socket.join('admin');
+        console.log('join admin')
+      }
     });
 });
 app.set('socketio', io)

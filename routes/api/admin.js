@@ -9,7 +9,7 @@ const moment =  require('moment')
 
 const {sendMessage} = require('../../push_noti')
 
-
+const {upload_files} = require('../../s3')
 const User = require('../../models/User')
 const Alert = require('../../models/Alert')
 const Inventory = require('../../models/Inventory')
@@ -20,6 +20,7 @@ const Invoice = require('../../models/Invoices')
 const Zone = require('../../models/Zone')
 const Combine = require('../../models/Combine') 
 const History = require('../../models/History') 
+const Files = require('../../models/Files') 
 
 const send_noti = async (type = 1,users_id =[],title='',msg='') => {
     if(type == 1){
@@ -376,13 +377,66 @@ router.post('/combine_stock', auth, async (req, res) => {
       res.status(500).send('Server error');
     }
 });
+router.post('/create_file', [auth,upload_files.array('files')], async (req, res) => {
+    const { name } = req.body;
   
+    try {
+        const file_obj = new Files({name:name,user:req.user.id})
+        await Promise.all(req.files.map(async (file) => {
+            file_obj.files.push(file.location)
+        }))
+        await file_obj.save()
+        res.json(file_obj);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server error');
+    }
+});
+router.post('/delete_file',auth, async (req, res) => {
+    const { file_id } = req.body;
+  
+    try {
+        const file  = await Files.findById(file_id)
+        file.is_active = false
+        await file.save()
+        res.json(file);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server error');
+    }
+});
+router.post('/list_file', auth, async (req, res) => {
+    const { page=1,limit=10,start_date,end_date,is_active=true,search } = req.body;
+  
+    try {
+        console.log(req.body)
+        let query = {is_active:is_active}
+        if (search) {
+            const searchRegex = new RegExp(search, 'i');
+            query.$or = [
+                { name: { $regex: searchRegex } },
+            ];
+        }
 
+        if(end_date && start_date) query.create_date = { $gte: start_date, $lte: end_date}
+        const list = await Files.find(query).populate('user').skip((page - 1) * limit).limit(limit).sort({create_date:-1});
+        const total = await Files.countDocuments({is_active:true});
+        console.log(total)
+        res.json({
+            page:page,
+            list:list,
+            total:total
+        })
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server error');
+    }
+});
 router.get('/delete_data', async (req, res) => {
     const { stocks, zone, byUser } = req.body;
   
     try {
-      Invoice.deleteMany({})
+      Invoice.deleteMany({type:1})
       .then(() => console.log('All invoice removed'))
       .catch((err) => console.error(err));
 
@@ -426,7 +480,7 @@ router.get('/create_data', async (req, res) => {
                 const invoice = new Invoice({
                   user: user,
                   list,
-                  type: 2,
+                  type: 1,
                   amount: list.reduce((total, item) => total + (item.amount ), 0),
                   flow_balance: {
                     bring_forward: Math.floor(Math.random() * 1000),

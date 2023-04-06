@@ -121,7 +121,25 @@ const upload_notes = multer({
         fileSize: 1024 * 1024 * 5 // we are allowing only 5 MB files
     }
 })
-
+// upload file object
+const multerS3Config_files = multerS3({
+    s3: s3,
+    bucket: bucketName,
+    contentType: multerS3.AUTO_CONTENT_TYPE,
+    metadata: function (req, file, cb) {
+        cb(null, { fieldName: file.fieldname });
+    },
+    key: function (req, file, cb) {
+        console.log(file)
+        cb(null, 'files/' + new Date().toISOString() + '-'+Math.random().toString(36).slice(-8) + file.originalname)
+    }
+});
+const upload_files = multer({
+    storage: multerS3Config_files,
+    limits: {
+        fileSize: 1024 * 1024 * 5 // we are allowing only 5 MB files
+    }
+})
 //delete obj
 
 const delete_obj = (obj) =>{
@@ -139,10 +157,12 @@ const delete_obj = (obj) =>{
       }
     
 }
+
 exports.upload_avatar = upload_avatar; 
 exports.upload_inboxs = upload_inbox; 
 exports.upload_inventories = upload_inventories; 
 exports.upload_invoices = upload_invoices; 
 exports.upload_notes = upload_notes; 
+exports.upload_files = upload_files; 
 
 exports.delete_obj = delete_obj; 
