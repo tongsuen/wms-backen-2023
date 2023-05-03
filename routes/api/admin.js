@@ -132,7 +132,6 @@ router.post('/list_stock_out_pending', auth,async (req,res)=> {
 router.post('/accept_invoice', auth,async (req,res)=> {
     const {invoice_id,action} = req.body;
     try {
-        console.log('accept invoice called')
         const stock_out = await Invoice.findOne({_id:invoice_id})
         
         const by_user = await User.findById(req.user.id)
@@ -161,7 +160,14 @@ router.post('/accept_invoice', auth,async (req,res)=> {
                 }
                 await stock.save()
             }
-
+            invoice.history = [
+                {
+                    status:'accept',
+                    user:req.user.id,
+                },
+                ...invoice.history,
+    
+            ]
             send_noti(1,[],'นำสินค้าออกสำเร็จ','สินค้าของคุณได้รับการอนุมัติให้ออกจากคลังสินค้าแล้ว');
             const alert = new Notification({
                 invoice:stock_out._id,
@@ -200,6 +206,15 @@ router.post('/accept_invoice', auth,async (req,res)=> {
                     await stock.save()
                 }
             }
+
+            invoice.history = [
+                {
+                    status:'decline',
+                    user:req.user.id,
+                },
+                ...invoice.history,
+    
+            ]
             send_noti(1,[],'นำสินค้าออกไม่สำเร็จ','ไม่สามารถเอาสินค้าออกจากคลังสินค้าได้ โปรดติดต่อเจ้าหน้าที่');
             if(by_user.admin){
                 const alert = new Notification({

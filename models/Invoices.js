@@ -231,6 +231,19 @@ const InvoiceSchema = new mongoose.Schema({
         type:mongoose.Schema.Types.ObjectId,
         ref:'order',
     },
+    history:[
+        {
+            status:String,
+            user:{
+                type:mongoose.Schema.Types.ObjectId,
+                ref:'user',
+            },
+            create_date : {
+                type : Date,
+                default : Date.now()
+            }
+        }
+    ],
     driver:{
             type:String
     },
@@ -242,7 +255,7 @@ const InvoiceSchema = new mongoose.Schema({
     },
     create_date : {
         type : Date,
-        default : Date.now
+        default : Date.now()
     }
 });
 InvoiceSchema.pre('save', async function (next) {

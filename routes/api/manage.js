@@ -597,7 +597,7 @@ router.post('/list_stocks_by_name', auth,async (req,res)=> {
                   unit: { $first: "$product.unit" },
                   sub_unit: { $first: "$product.sub_unit" },
                   prepare:{$sum:"$prepare_out"},
-                  prepare_sub:{$sum:"$prepare_sub_out"},
+                  prepare_sub:{$sum:"$prepare_out_sub_amount"},
                   totalAmount: { $sum: "$current_amount" },
                   totalSubAmount: { $sum: "$current_sub_amount" }
                 }
@@ -612,7 +612,10 @@ router.post('/list_stocks_by_name', auth,async (req,res)=> {
                     prepare: 1,
                     prepare_sub: 1,
                     totalAmount: 1,
-                    totalSubAmount: 1
+                    totalSubAmount: 1,
+                    total: { $subtract: [ "$totalAmount", "$prepare" ] },
+                    sub_total: { $subtract: [ "$totalSubAmount", "$prepare_sub" ] }
+
                 }
             },
             { $sort: { totalAmount: -1 } },
@@ -827,6 +830,14 @@ router.post('/import_to_stocks_approve', auth,async (req,res)=> {
         const invoice = await Invoice.findById(invoice_id)
         if(approve === 0){
             invoice.status = 'decline'
+            invoice.history = [
+                {
+                    status:'decline',
+                    user:req.user.id,
+                },
+                ...invoice.history,
+    
+            ]
             await invoice.save()
 
             const by_user = await User.findById(req.user.id)
@@ -872,7 +883,16 @@ router.post('/import_to_stocks_approve', auth,async (req,res)=> {
             invoice.import_list[i].inventory = inv 
         }
         console.log(invoice.import_list)
+        invoice.history = [
+            {
+                status:'pending',
+                user:req.user.id,
+            },
+            ...invoice.history,
+
+        ]
         invoice.status = 'pending'
+     
         await invoice.save()
 
         const by_user = await User.findById(req.user.id)
@@ -1042,6 +1062,14 @@ router.post('/import_to_stocks_by_invoice', auth,async (req,res)=> {
         }
      
         invoice.import_stock_list = list
+        invoice.history = [
+            {
+                status:'accept',
+                user:req.user.id,
+            },
+            ...invoice.history,
+
+        ]
         invoice.status='accept'
         await invoice.save()
         const by_user = await User.findById(req.user.id)
@@ -1649,6 +1677,7 @@ router.post('/list_invoice', auth,async (req,res)=> {
             const searchRegex = new RegExp(search, 'i');
             if(parseInt(type) === 1){
                 query.$or = [
+                    {  'ref_number': { $regex: searchRegex }},
                     { 'import_list.name': { $regex: searchRegex } },
                     { 'import_list.lot_number': { $regex: searchRegex } },
                     { 'import_list.product_code': { $regex: searchRegex } },
@@ -1656,9 +1685,10 @@ router.post('/list_invoice', auth,async (req,res)=> {
             }
             else {
                 query.$or = [
-                    { 'list.name': { $regex: searchRegex } },
-                    { 'list.lot_number': { $regex: searchRegex } },
-                    { 'list.product_code': { $regex: searchRegex } },
+                    { 'ref_number': { $regex: searchRegex }},
+                    { 'export_list.name': { $regex: searchRegex } },
+                    { 'export_list.lot_number': { $regex: searchRegex } },
+                    { 'export_list.product_code': { $regex: searchRegex } },
                 ];
             }
         }//8537
@@ -1731,6 +1761,10 @@ router.post('/get_invoice', auth,async (req,res)=> {
     const {invoice_id} = req.body;
     try {
         console.log(req.body)
+        if(!invoice_id){
+            return  res.status(500).send({msg:'need invoice id'})
+
+        }
         const inv = await Invoice.findOne({_id:invoice_id}).populate('import_list.inventory').populate('import_stock_list.zone').populate('import_list.product').populate('from').populate('to').populate('import_list.zone').populate('stock').populate('export_list.stock').populate('export_list.zone').populate('user','-password');
         console.log(inv);
         
@@ -1907,6 +1941,44 @@ router.post('/list_noti_staff', auth, async (req, res) => {
         notifications,
         unReadCount,
       });
+    } catch (error) {
+      console.error(error);
+      res.status(500).send('Server Error');
+    }
+  });
+  router.post('/set_read_customer_noti', auth, async (req, res) => {
+    try {
+      const { user } = req.body;
+      if (!user) {
+        return res.status(400).json({ message: 'Missing user property in request body' });
+      }
+  
+      const result = await Notification.updateMany({ user, is_read: false }, { is_read: true });
+      const { nModified } = result;
+  
+      if (nModified > 0) {
+        return res.json({success:true});
+      } else {
+        return res.json([]);
+      }
+    } catch (error) {
+      console.error(error);
+      res.status(500).send('Server Error');
+    }
+  });
+  router.post('/set_read_admin_noti', auth, async (req, res) => {
+    try {
+      const { user } = req.body;
+    
+  
+      const result = await AdminNotification.updateMany({  is_read: false }, { is_read: true });
+      const { nModified } = result;
+  
+      if (nModified > 0) {
+        return res.json({success:true});
+      } else {
+        return res.json([]);
+      }
     } catch (error) {
       console.error(error);
       res.status(500).send('Server Error');
