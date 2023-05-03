@@ -20,24 +20,55 @@ const Inbox = require('../../models/Inbox')
 const Note = require('../../models/Notes') 
 
 router.post('/will_exp_stock',auth,async (req,res)=> {
-    const { range = 30 } = req.body;
+    const { range = 30,user } = req.body;
    
     try {
       const today = new Date();
       const thirtyDaysLater = new Date(today.getFullYear(), today.getMonth(), today.getDate() + range);
       console.log(thirtyDaysLater)
+
+
       const expiringInventory = await Inventory.find({ exp_date: { $gte: today, $lte: thirtyDaysLater } });
-   
-      const expiringStocks = await Stocks.find({ inventory: { $in: expiringInventory.map(item => item._id) },is_active:true }).populate('zone').populate('inventory');
+      let query = { inventory: { $in: expiringInventory.map(item => item._id) },is_active:true }
+      if(user) query.user = user
+      const expiringStocks = await Stocks.find(query).populate('zone').populate('inventory');
     
       return res.json(expiringStocks)
     } catch (error) {
     
-       res.status(500).send(err.message)
+       res.status(500).send(error.message)
     }
 
 })
-
+router.post('/latest_import', auth,async (req, res) => {
+  const {limit = 10} = req.body
+  try {
+    const list = await Inventory
+      .find({ is_active:true,status:'accept',user:req.user.id })
+      .populate('product')
+      .sort({ create_date: -1 })
+      .limit(limit);
+   
+    res.status(200).json(list);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+router.post('/latest_export', async (req, res) => {
+  const {limit = 10} = req.body
+  try {
+    const list = await Invoice
+      .find({ is_active:true,status:'accept' })
+      .populate('export_list.stock')
+      .populate('to')
+      .sort({ create_date: -1 })
+      .limit(limit);
+   
+    res.status(200).json(list);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
 router.post('/exp_stock',auth,async (req,res)=> {
   const expiredInventory = await Inventory.find({ exp_date: { $lte: new Date() } });
   const expiredStocks = await Stocks.find({ inventory: { $in: expiredInventory.map(item => item._id) }, is_active: true }).populate('zone').populate('inventory');
@@ -472,64 +503,57 @@ router.post('/report_most_import', auth, async (req, res) => {
   const endDate = new Date();
   const startDate = new Date(endDate.getTime() - (range * 24 * 60 * 60 * 1000));
 
-  console.log(startDate)
   let matchQuery = {
       type: 1 ,
       //create_date: { $gte: startDate, $lte: endDate } // Only consider invoices within the date range
 
   }
+
   if(user_id) matchQuery.user =  mongoose.Types.ObjectId(user_id)
 
-  const result = await Invoice.aggregate([
-    {
-      $match: matchQuery // Only consider stock in invoices
-    },
-    {
-      $group: {
-        _id: {
+  try {
+    result = await Invoice.aggregate([
+      // Match only documents with import_list array
+      { $match: { import_list: { $exists: true, $not: { $size: 0 } } } },
+      // Unwind the import_list array to de-normalize it
+      { $unwind: "$import_list" },
+      // Extract the month and year from the invoice's create_date
+      {
+        $addFields: {
           month: { $month: "$create_date" },
-          year: { $year: "$create_date" },
-          stock: "$stock"
-        },
-        imported_amount: { $sum: "$amount" }
-      }
-    },
-    {
-      $group: {
-        _id: {
-          month: "$_id.month",
-          year: "$_id.year"
-        },
-        top_stock: { $first: "$_id.stock" }, // Get the stock with the highest imported amount in each month
-        imported_amount: { $first: "$imported_amount" }
-      }
-    },
-    {
-      $lookup: {
-        from: "stocks", // The name of the Stock collection
-        localField: "top_stock",
-        foreignField: "_id",
-        as: "stock"
-      }
-    },
-    {
-      $project: {
-        _id: 0,
-        month: "$_id.month",
-        year: "$_id.year",
-        stock: {
-          id: { $arrayElemAt: ["$stock._id", 0] },
-          name: { $arrayElemAt: ["$stock.name", 0] }
-        },
-        imported_amount: 1
-      }
-    },
-    {
-      $sort: { year: -1, month: -1 } // Sort by year, month, and imported amount
-    }
-  ]);
+          year: { $year: "$create_date" }
+        }
+      },
+      // Group by name, month, and year and sum the amount
+      {
+        $group: {
+          _id: {
+            name: "$import_list.name",
+            month: "$month",
+            year: "$year"
+          },
+          total_exported: { $sum: "$import_list.amount" }
+        }
+      },
 
-  return res.json(result);
+      {
+        $project: {
+          _id: 0,
+          month: "$_id.month",
+          year: "$_id.year",
+          stock_name: "$_id.name",
+          total_exported: 1
+        }
+      },
+
+      // Sort by name and year
+      { $sort: { "_id.name": 1, "_id.year": 1 } }
+    ]);
+    
+      return res.json(result);
+  } catch (error) {
+      res.status(500).send(error.message)
+  }
 });
 
 router.post('/report_most_export', auth, async (req, res) => {
@@ -644,7 +668,7 @@ router.post('/longest_stock', auth, async (req, res) => {
     return res.json(result);
   } catch (error) {
     
-    res.status(500).send(err.message)
+    res.status(500).send(error.message)
   }
   
 })

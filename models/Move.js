@@ -13,7 +13,10 @@ const MoveSchema = new mongoose.Schema({
        },
        amount:{
            type:Number
-       }
+       },
+       sub_amount:{
+        type:Number
+        }
     },
     to:{
         stock:{
@@ -26,6 +29,9 @@ const MoveSchema = new mongoose.Schema({
         },
         amount:{
            type:Number
+        },
+        sub_amount:{
+            type:Number
         }
     },
     user:{

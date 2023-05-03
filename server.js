@@ -57,6 +57,9 @@ app.use('/api/admin',require('./routes/api/admin'))
 app.use('/api/report',require('./routes/api/report'))
 app.use('/api/mobile',require('./routes/api/mobile'))
 app.use('/api/order',require('./routes/api/order'))
+app.use('/api/product',require('./routes/api/product'))
+// Route Customer API
+app.use('/api/customer/stock',require('./routes/api/customer/stock'))
 
 // Serve static assets in production
 if(process.env.NODE_ENV == 'production'){

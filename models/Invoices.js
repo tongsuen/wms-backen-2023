@@ -20,7 +20,36 @@ const InvoiceSchema = new mongoose.Schema({
         type:mongoose.Schema.Types.ObjectId,
         ref:'user',
     },
-    list:[{
+    export_product_list:[{//for export product by user
+        product:{
+            type:mongoose.Schema.Types.ObjectId,
+            ref:'product',
+        },
+        name:{
+            type:String,
+        },
+        lot_number:{
+            type:String,
+        },
+        product_code:{
+            type:String,
+        },
+        amount:{
+            type:Number,
+            default:0
+        },
+        sub_amount:{
+            type:Number,
+            default:0
+        },
+        unit:{
+            type:String,
+        },
+        sub_unit:{
+            type:String,
+        },
+    }],
+    export_list:[{//for export list stock by admin
         stock:{
             type:mongoose.Schema.Types.ObjectId,
             ref:'stocks',
@@ -37,15 +66,84 @@ const InvoiceSchema = new mongoose.Schema({
         unit:{
             type:String,
         },
+        sub_unit:{
+            type:String,
+        },
         amount:{
+            type:Number,
+            default:0
+        },
+        sub_amount:{
+            type:Number,
+            default:0
+        },
+        zone:{
+            type:mongoose.Schema.Types.ObjectId,
+            ref:'zone',
+        },
+        number_pallate:{
+            type:Number,
+            default:1
+        },
+    }],
+    import_list:[{//for import list inventory
+        inventory:{
+            type:mongoose.Schema.Types.ObjectId,
+            ref:'inventory',
+        },
+        product:{
+            type:mongoose.Schema.Types.ObjectId,
+            ref:'product',
+        },
+
+        name:{
+            type:String,
+        },
+        lot_number:{
+            type:String,
+        },
+        product_code:{
+            type:String,
+        },
+        number_pallate:{
+            type:Number,
+            default:1
+        },
+        zone:{
+            type:mongoose.Schema.Types.ObjectId,
+            ref:'zone',
+        },
+        unit:{
+            type:String,
+        },
+        sub_unit:{
+            type:String,
+        },
+        amount:{
+            type:Number,
+            default:0
+        },
+        sub_amount:{
             type:Number,
             default:0
         }
     }],
-    import_list:[{
+    import_stock_list:[{//for import list inventory
         inventory:{
             type:mongoose.Schema.Types.ObjectId,
             ref:'inventory',
+        },
+        stock:{
+            type:mongoose.Schema.Types.ObjectId,
+            ref:'stock',
+        },
+        product:{
+            type:mongoose.Schema.Types.ObjectId,
+            ref:'product',
+        },
+        zone:{
+            type:mongoose.Schema.Types.ObjectId,
+            ref:'zone',
         },
         name:{
             type:String,
@@ -56,19 +154,21 @@ const InvoiceSchema = new mongoose.Schema({
         product_code:{
             type:String,
         },
-        zone:{
-            type:mongoose.Schema.Types.ObjectId,
-            ref:'zone',
-        },
         unit:{
+            type:String,
+        },
+        sub_unit:{
             type:String,
         },
         amount:{
             type:Number,
             default:0
+        },
+        sub_amount:{
+            type:Number,
+            default:0
         }
     }],
-
     zone_out_name:{
         type:String,
     },  
@@ -86,6 +186,10 @@ const InvoiceSchema = new mongoose.Schema({
         //1 = stock in, 2 = stock out,
     },
     amount:{
+        type:Number,
+        default:0
+    },
+    sub_amount:{
         type:Number,
         default:0
     },
@@ -108,22 +212,33 @@ const InvoiceSchema = new mongoose.Schema({
         },
     },
     status:{
-        type:Number,
-        default:1
+        type:String,
+        enum: ['pending','accept','decline','request',],
+        default:'pending'// 1 :in warehouse, 2 :pennding export , 3 :out of stock , -1 : remove by user,resuest is create by user
     },
     remark:{
         type:String,
     },
     from:{
-            type:String,
+        type:mongoose.Schema.Types.ObjectId,
+        ref:'location',
     },
-
     to:{
-        type:String,
+        type:mongoose.Schema.Types.ObjectId,
+        ref:'location',
     },
-
-    tranport:{
-        type:String,
+    order:{
+        type:mongoose.Schema.Types.ObjectId,
+        ref:'order',
+    },
+    driver:{
+            type:String
+    },
+    car_code:{
+            type:String
+    },
+    start_date : {
+        type : Date,
     },
     create_date : {
         type : Date,
@@ -134,17 +249,22 @@ InvoiceSchema.pre('save', async function (next) {
     try {
       if (!this.ref_number) {
         // Generate a new reference number if not provided
+        const currentDate = new Date().toLocaleDateString('th-TH', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
+          }).replace(/\//g, '');
 
         const lastInvoice = await Invoice.findOne({}, {}, { sort: { 'create_date': -1 } });
         let newRefNumber;
 
         if (lastInvoice) {
-          let lastRefNumber = lastInvoice.ref_number;
-          if(!lastRefNumber) lastRefNumber = 'INV-0001'
-          const lastNumber = parseInt(lastRefNumber.slice(-4), 10);
-          newRefNumber = `INV-${(lastNumber + 1).toString().padStart(4, '0')}`;
+            let lastRefNumber = lastInvoice.ref_number;
+            if(!lastRefNumber) lastRefNumber = `${currentDate}0001`
+            const lastNumber = parseInt(lastRefNumber.slice(-4), 10);
+            newRefNumber = `${currentDate}${(lastNumber + 1).toString().padStart(4, '0')}`;
         } else {
-          newRefNumber = 'INV-0001';
+            newRefNumber = `${currentDate}0001`;;
         }
         this.ref_number = newRefNumber;
       }

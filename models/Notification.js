@@ -24,6 +24,11 @@ const NotificationSchema = new mongoose.Schema({
         type:String,
         enum: ['import', 'export','message', 'other'],
     },
+    action:{
+        type:String,
+        enum: ['accept', 'decline','warning', 'error'],
+        default:'accept'
+    },
     title:{
         type:String,
     },

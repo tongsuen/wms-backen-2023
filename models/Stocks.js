@@ -6,6 +6,11 @@ const StocksSchema = new mongoose.Schema({
         type:mongoose.Schema.Types.ObjectId,
         ref:'inventory',
     },
+    product:{
+        type:mongoose.Schema.Types.ObjectId,
+        ref:'product',
+    },
+  
     zone:{
         type:mongoose.Schema.Types.ObjectId,
         ref:'zone',
@@ -34,6 +39,19 @@ const StocksSchema = new mongoose.Schema({
             type:Number
         }
     }],
+    combineFrom:[{
+     
+        stock:{
+            type:mongoose.Schema.Types.ObjectId,
+            ref:'stock',
+        },
+        old_amount:{
+            type:Number
+        },
+        amount:{
+            type:Number
+        }
+    }],
 
     name:{
             type:String,
@@ -49,19 +67,21 @@ const StocksSchema = new mongoose.Schema({
         type:Number,
         default:0
     },
-    group_unit:{
-        type:String,
-    },
-    unit:{
-        type:String,
+    current_sub_amount:{
+        type:Number,
     },
     prepare_out:{
         type:Number,
         default:0
     },
-    status:{
+    prepare_out_sub_amount:{
         type:Number,
-        default:1// 1 :in warehouse, 2 :pennding export , 3 :out of stock , -1 : remove by user
+        default:0
+    },
+    status:{
+        type:String,
+        enum: ['warehouse','combine','pending', 'out','removed','expire'],
+        default:'warehouse'// 1 :in warehouse, 2 :pennding export , 3 :out of stock , -1 : remove by user
     },
     note:{
         type:String,
@@ -81,6 +101,28 @@ const StocksSchema = new mongoose.Schema({
         default : Date.now
     }
 });
+StocksSchema.pre('save', async function (next) {
+    try {
+      if (!this.ref_number) {
+        // Generate a new reference number if not provided
 
+        const lastInvoice = await Invoice.findOne({}, {}, { sort: { 'create_date': -1 } });
+        let newRefNumber;
+
+        if (lastInvoice) {
+          let lastRefNumber = lastInvoice.ref_number;
+          if(!lastRefNumber) lastRefNumber = '0001'
+          const lastNumber = parseInt(lastRefNumber.slice(-4), 10);
+          newRefNumber = `STK-${(lastNumber + 1).toString().padStart(4, '0')}`;
+        } else {
+          newRefNumber = 'INV-0001';
+        }
+        this.ref_number = newRefNumber;
+      }
+      next();
+    } catch (error) {
+      next(error);
+    }
+});
 StocksSchema.index({name:'text',lot_number:'text',product_code:'text',note:'text'});
 module.exports = Stocks = mongoose.model('stocks',StocksSchema)

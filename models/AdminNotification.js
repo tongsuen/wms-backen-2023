@@ -13,11 +13,12 @@ const AdminNotificationSchema = new mongoose.Schema({
         type:mongoose.Schema.Types.ObjectId,
         ref:'inbox',   
     },
+  
     invoice:{
         type:mongoose.Schema.Types.ObjectId,
         ref:'invoice',   
     },
-    Order:{
+    order:{
         type:mongoose.Schema.Types.ObjectId,
         ref:'order',   
     },
@@ -26,7 +27,7 @@ const AdminNotificationSchema = new mongoose.Schema({
     },
     type:{
         type:String,
-        enum: ['import', 'export','message', 'other'],
+        enum: ['request','import', 'export','message', 'other'],
     },
     title:{
         type:String,

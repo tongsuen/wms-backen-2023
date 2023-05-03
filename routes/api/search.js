@@ -15,6 +15,9 @@ const Inventory = require('../../models/Inventory')
 const Stocks = require('../../models/Stocks')
 const StocksHistory = require('../../models/StocksHistory')
 const Zone = require('../../models/Zone')
+const Location = require('../../models/Location')
+const Product = require('../../models/Product')
+
 
 router.post('/search_inventory',async (req,res)=> {
     const {keyword,id,start_date,end_date} = req.body;
@@ -105,7 +108,55 @@ router.post('/autocomplete_lot_number',auth,async (req,res)=> {
     try {
         console.log(req.user.id);
         
-        const list_inv = await Inventory.find({lot_number:{"$regex":keyword },user:req.user.id})
+        const list_inv = await Inventory.find({lot_number:{"$regex":keyword, '$options' : 'i'  },user:req.user.id})
+        
+        return res.json(list_inv)
+    }catch(err){
+        console.log(err.message);
+        res.status(500).send(err.message)
+    }
+})
+
+router.post('/autocomplete_product',auth,async (req,res)=> {
+    const {keyword,user} = req.body;
+    try {
+        console.log(req.user.id);
+        
+        const list_inv = await Product.find({name:{"$regex":keyword, '$options' : 'i' },user:user ? user : req.user.id})
+        
+        return res.json(list_inv)
+    }catch(err){
+        console.log(err.message);
+        res.status(500).send(err.message)
+    }
+})
+
+router.post('/autocomplete_inventory_name',auth,async (req,res)=> {
+    const {keyword} = req.body;
+    try {
+        console.log(keyword);
+        const searchRegex = new RegExp(keyword, 'i');
+
+        const list_inv = await Inventory.find({name: { $regex: searchRegex, '$options' : 'i'  }})
+        
+        return res.json(list_inv)
+    }catch(err){
+        console.log(err.message);
+        res.status(500).send(err.message)
+    }
+})
+router.post('/autocomplete_location',auth,async (req,res)=> {
+    const {keyword} = req.body;
+    try {
+        console.log(keyword);
+        const searchRegex = new RegExp(keyword, 'i');
+
+        const list_inv = await Location.find({
+            $or: [
+                { name: { $regex: searchRegex } },
+                { detail: { $regex: searchRegex } }
+              ]
+        }).sort({create_date:-1}).limit(5)
         
         return res.json(list_inv)
     }catch(err){

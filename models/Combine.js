@@ -14,6 +14,9 @@ const CombineSchema = new mongoose.Schema({
             },
             amount:{
                 type:Number
+            },
+            sub_amount:{
+                type:Number
             }
          }
     ],
@@ -28,6 +31,9 @@ const CombineSchema = new mongoose.Schema({
         },
         amount:{
            type:Number
+        },
+        sub_amount:{
+            type:Number
         }
     },
     user:{

@@ -19,7 +19,8 @@ const FilesSchema = new mongoose.Schema({
         type:String
     },
     type:{
-        type:Number
+        type:Number,
+        default:1
     },
     request:{
         type:String

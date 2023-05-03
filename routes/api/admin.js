@@ -79,6 +79,35 @@ router.post('/remove_inventory', auth,async (req,res)=> {
         res.status(500).send(err.message)
     }
 })
+router.post('/update_request_invoice', auth,async (req,res)=> {
+    try {
+        const {invoice_id,list} = req.body
+
+        for (let i = 0; i < list.length; i++) {
+            const stk_info = list[i];
+           
+            const amount = stk_info.amount
+            const sub_amount = stk_info.sub_amount
+
+            const stock = await Stocks.findById(stk_info.stock)
+           
+            stock.prepare_out_sub_amount = stock.prepare_out_sub_amount + sub_amount
+            stock.prepare_out = stock.prepare_out + amount
+            await stock.save()
+        }
+
+        const invoice = await Invoice.findById(invoice_id)
+        invoice.export_list = list
+
+        invoice.status='pending'
+        await invoice.save()
+        res.json(invoice)
+
+    }catch(err){
+        console.log(err.message);
+        res.status(500).send(err.message)
+    }
+})
 router.post('/list_stock_out_pending', auth,async (req,res)=> {
     const {user,page = 1,limit = 10} = req.body;
     try {
@@ -103,20 +132,43 @@ router.post('/list_stock_out_pending', auth,async (req,res)=> {
 router.post('/accept_invoice', auth,async (req,res)=> {
     const {invoice_id,action} = req.body;
     try {
-     
+        console.log('accept invoice called')
         const stock_out = await Invoice.findOne({_id:invoice_id})
         
         const by_user = await User.findById(req.user.id)
         if(action == 1)// accept
         {
-            stock_out.status = 2;
+            stock_out.status = 'accept'; // accept invoice
+
+            for (let i = 0; i < stock_out.export_list.length; i++) {
+                const stkInfo=  stock_out.export_list[i]
+                console.log(stkInfo)
+                const stock = await Stocks.findById(stkInfo.stock);
+             
+                if(stock.current_amount === stkInfo.amount && stock.current_sub_amount === stkInfo.sub_amount){
+                    stock.current_amount = 0
+                    stock.current_sub_amount = 0
+                    stock.prepare_out = 0
+                    stock.prepare_out_sub_amount = 0
+                    stock.status = 'out' // out of stock
+               
+                }
+                else{
+                    stock.current_amount = stock.current_amount - stock.prepare_out
+                    stock.current_sub_amount = stock.current_sub_amount - stock.prepare_out_sub_amount
+                    stock.prepare_out = 0
+                    stock.prepare_out_sub_amount = 0
+                }
+                await stock.save()
+            }
+
             send_noti(1,[],'นำสินค้าออกสำเร็จ','สินค้าของคุณได้รับการอนุมัติให้ออกจากคลังสินค้าแล้ว');
-            const alert = new Alert({
+            const alert = new Notification({
                 invoice:stock_out._id,
-                type:5,
+                type:'export',
                 by_user:by_user,
                 user:stock_out.user,
-                subject:'นำสินค้าออกสำเร็จ',
+                title:'นำสินค้าออกสำเร็จ',
                 detail:'สินค้าของคุณได้รับการอนุมัติให้ออกจากคลังสินค้าแล้ว'
             })
             await alert.save()
@@ -126,44 +178,73 @@ router.post('/accept_invoice', auth,async (req,res)=> {
         }
         else if(action == 2)//decline
         {
-            stock_out.status = 0;
+            stock_out.status = 'decline';
        
             if(stock_out.stock){
                 const stock = await Stocks.findById(stock_out.stock);
-                stock.current_amount = stock.current_amount + stock_out.amount;
-                stock.is_active = true;
-                stock.status = 1;
+                
+                stock.prepare_out = 0
+                stock.prepare_out_sub_amount = 0
                 await stock.save()
             }
             else {
-                for (let i = 0; i < stock_out.list.length; i++) {
-                    const stk=  stock_out.list[i]
+                for (let i = 0; i < stock_out.export_list.length; i++) {
+                    const stk=  stock_out.export_list[i]
                     console.log(stk)
                     const stock = await Stocks.findById(stk.stock);
                  
-                    stock.current_amount = stock.current_amount + stk.amount;
-        
-                    stock.is_active = true;
-                    stock.status = 1;
+                    stock.prepare_out = 0
+                    stock.prepare_out_sub_amount = 0
+
+                    
                     await stock.save()
                 }
             }
             send_noti(1,[],'นำสินค้าออกไม่สำเร็จ','ไม่สามารถเอาสินค้าออกจากคลังสินค้าได้ โปรดติดต่อเจ้าหน้าที่');
-            const alert = new Alert({
-                invoice:stock_out._id,
-                type:6,
-                by_user:by_user,
-                user:stock_out.user,
-                subject:'นำสินค้าออกไม่สำเร็จ',
-                detail:'ไม่สามารถเอาสินค้าออกจากคลังสินค้าได้ โปรดติดต่อเจ้าหน้าที่'
-            })
-            console.log(alert)
-            await alert.save()
-            const io = req.app.get('socketio');
-            io.to(alert.user.toString()).emit('action', {type:'new_alert',data:alert});
+            if(by_user.admin){
+                const alert = new Notification({
+                    invoice:stock_out._id,
+                    type:'export',
+                    by_user:by_user,
+                    user:stock_out.user,
+                    title:'นำสินค้าออกไม่สำเร็จ',
+                    detail:'ไม่สามารถเอาสินค้าออกจากคลังสินค้าได้ โปรดติดต่อเจ้าหน้าที่'
+                })
+                console.log(alert)
+                await alert.save()
+                const io = req.app.get('socketio');
+                io.to(alert.user.toString()).emit('action', {type:'new_alert',data:alert});
+            }
+            else{
+                const alert = new AdminNotification({
+                    invoice:stock_out._id,
+                    type:'export',
+                    by_user:by_user,
+                    user:stock_out.user,
+                    title:'ลูกค้ายกเลิกคำร้อง',
+                    detail:'ทำการยกเลิกคำร้อง'
+                })
+                console.log(alert)
+                await alert.save()
+                const io = req.app.get('socketio');
+                io.to(alert.user.toString()).emit('action', {type:'new_alert',data:alert});
+            }
         }
         await stock_out.save();
         res.json(stock_out)
+
+    }catch(err){
+        console.log(err.message);
+        res.status(500).send(err.message)
+    }
+})
+router.post('/update_invoice', auth,async (req,res)=> {
+    try {
+    
+        let doc = await Invoice.findOneAndUpdate({_id:req.body._id}, req.body);
+
+        await doc.save()
+        res.json(doc)
 
     }catch(err){
         console.log(err.message);
@@ -215,8 +296,9 @@ router.post('/list_move_stock', auth,async (req,res)=> {
         res.status(500).send(err.message)
     }
 })
+
 router.post('/move_stock', auth, async (req, res) => {
-    const { stock, zone, amount } = req.body;
+    const { stock, zone, amount,sub_amount } = req.body;
   
     try {
       const [stk, z, byUser] = await Promise.all([
@@ -225,35 +307,27 @@ router.post('/move_stock', auth, async (req, res) => {
         User.findById(req.user.id),
       ]);
   
-      if (stk.current_amount < amount) {
+      if (stk.current_amount < amount || stk.current_sub_amount < sub_amount) {
         return res
           .status(400)
           .json({ message: 'Your number is more than the existing inventory' });
       }
       console.log(stk)
-      if (amount === stk.current_amount) {
-        // stk.current_amount = 0;
-        // stk.is_active = false;
-        
-            const flowBalance = {
-                balance: stk.current_amount,
-                bring_forward: 0,
-                receive_amount: amount,
-                send_amount: 0,
-            };
-        
+      if (amount === stk.current_amount && sub_amount === stk.current_sub_amount) {
+    
             const moveDoc = new Move({
                 from: {
                 stock: stk,
                 zone: stk.zone,
                 amount: stk.current_amount,
+                sub_amount: stk.current_sub_amount,
                 },
                 to: {
                 stock: stk,
                 zone: z,
                 amount: stk.current_amount,
+                sub_amount: stk.current_sub_amount,
                 },
-                flow_balance: flowBalance,
                 user: byUser,
             });
 
@@ -271,24 +345,31 @@ router.post('/move_stock', auth, async (req, res) => {
       } else {
 
             stk.current_amount -= amount;
+            stk.current_sub_amount -= sub_amount;
 
             const newStock = new Stocks()
             const moveFrom = {
                 zone:z,
                 stock:stk,
                 old_amount:stk.current_amount,
-                amount:amount
+                amount:amount,
+                sub_amount:sub_amount
             }
             newStock.moveFrom = [moveFrom]
             newStock.current_amount = amount
-            newStock.status = 1
+
+            if(stk.product.sub_unit)  newStock.sub_unit = stk.product.sub_unit
+            if(stk.product.sub_unit)  newStock.current_sub_amount = sub_amount
+            newStock.status = 'warehouse'
 
             newStock.name = stk.name
             newStock.lot_number = stk.lot_number
             newStock.product_code = stk.product_code
 
             newStock.inventory = stk.inventory
+            newStock.product = stk.product
             newStock.unit = stk.unit
+
             newStock.user = stk.user
             newStock.zone = z
             const flowBalance = {
@@ -300,14 +381,16 @@ router.post('/move_stock', auth, async (req, res) => {
         
             const moveDoc = new Move({
                 from: {
-                stock: stk,
-                zone: stk.zone,
-                amount: stk.current_amount,
+                    stock: stk,
+                    zone: stk.zone,
+                    amount: stk.current_amount,
+                    sub_amount: stk.current_sub_amount,
                 },
                 to: {
-                stock: newStock,
-                zone: newStock.zone,
-                amount: newStock.current_amount,
+                    stock: newStock,
+                    zone: newStock.zone,
+                    amount: newStock.current_amount,
+                    sub_amount: newStock.current_sub_amount,
                 },
                 flow_balance: flowBalance,
                 user: byUser,
@@ -322,23 +405,39 @@ router.post('/move_stock', auth, async (req, res) => {
     }
 });
 router.post('/combine_stock', auth, async (req, res) => {
-    const { stocks, zone, byUser } = req.body;
+    const { list, zone,remark } = req.body;
   
     try {
-      const stockIds = stocks.map((stk) => stk.stock_id);
+        console.log(req.body)
+      const stockIds = list.map((stk) => stk.stock);
       const stocksInfo = await Stocks.find({ _id: { $in: stockIds } });
-      const totalAmount = stocks.reduce((total, stk) => total + stk.amount, 0);
-  
+      const totalAmount = list.reduce((total, stk) => total + stk.amount, 0);
+      const totalSubAmount = list.reduce((total, stk) => total + stk.sub_amount, 0);
+    
+      let array = []
       for (const stockInfo of stocksInfo) {
-        const stk = stocks.find((s) => s.stock_id === stockInfo._id.toString());
+        const stk = list.find((s) => s.stock === stockInfo._id.toString());
         if (stockInfo.current_amount - stk.amount === 0) {
-          stockInfo.current_amount = 0;
-          stockInfo.is_active = false;
+            stockInfo.current_amount = 0;
+            stockInfo.is_active = false;
+            stockInfo.status = 'combine';
+
         } else if (stockInfo.current_amount - stk.amount >= 0) {
-          stockInfo.current_amount = stockInfo.current_amount - stk.amount;
+            stockInfo.current_amount = stockInfo.current_amount - stk.amount;
         } else {
-          throw new Error('Invalid amount');
+            throw new Error('Invalid amount');
         }
+
+        if (stockInfo.current_sub_amount - stk.sub_amount === 0) {
+            stockInfo.current_sub_amount = 0;
+            stockInfo.is_active = false;
+            stockInfo.status = 'combine';
+        } else if (stockInfo.current_sub_amount - stk.sub_amount >= 0) {
+            stockInfo.current_sub_amount = stockInfo.current_sub_amount - stk.sub_amount;
+        } else {
+            throw new Error('Invalid amount');
+        }
+
         await stockInfo.save();
       }
       
@@ -348,29 +447,37 @@ router.post('/combine_stock', auth, async (req, res) => {
         name: stocksInfo[0].name,
         lot_number: stocksInfo[0].lot_number,
         product_code: stocksInfo[0].product_code,
-        inventory: stocksInfo[0].inventory,
+        inventory: stocksInfo[0].inventory,        
+        product: stocksInfo[0].product,
         group_unit: stocksInfo[0].group_unit,
         unit: stocksInfo[0].unit,
+        sub_unit: stocksInfo[0].sub_unit,
         current_amount: totalAmount,
+        current_sub_amount: totalSubAmount,
       });
       await combinedStock.save();
-  
+      const from = list.map((stk) =>  {
+        return {
+          stock:stk.stock,
+          zone:stk.zone,
+          amount: stk.amount,
+          sub_amount: stk.sub_amount
+        }
+
+      });
       const combine = new Combine({
-        from: stocksInfo,
+        from: from,
         to: {
           stock: combinedStock,
           zone: combinedStock.zone,
           amount: combinedStock.current_amount,
+          sub_amount: combinedStock.current_sub_amount,
         },
-        flow_balance: {
-          balance: combinedStock.current_amount,
-          bring_forward: 0,
-          receive_amount: totalAmount,
-          send_amount: 0,
-        },
-        user: byUser,
+        remark:remark,
+        user: req.user.id,
       });
       await combine.save();
+
       res.json(combinedStock);
     } catch (err) {
       console.error(err.message);

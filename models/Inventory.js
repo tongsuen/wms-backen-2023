@@ -13,6 +13,11 @@ const InventorySchema = new mongoose.Schema({
         type:mongoose.Schema.Types.ObjectId,
         ref:'user',
     },
+  
+    product:{
+        type:mongoose.Schema.Types.ObjectId,
+        ref:'product',
+    },
     amount:{
         type:Number,
     },
@@ -22,7 +27,9 @@ const InventorySchema = new mongoose.Schema({
     weight:{
         type:Number,
     },
-  
+    number_pallate:{
+        type:Number,
+    },
     lot_number:{
         type:String,
         required:true,
@@ -30,19 +37,10 @@ const InventorySchema = new mongoose.Schema({
     product_code:{
         type:String,
     },
-    unit:{
-        type:String,
-        required:true,
-    },
-    sub_unit:{
-        type:String,
-        required:true,
-    },
-    number_of_unit:{ // number of main unit ex: 10 box
+
+    total_sub_unit:{ // number of sub unit 
         type:Number,
-    },
-    number_per_unit:{ // number of item in main unit ex: 10 bottle in 1 box
-        type:Number,
+        defaul:0
     },
     mfg_date : {
         type : Date,
@@ -55,6 +53,10 @@ const InventorySchema = new mongoose.Schema({
             type:String
         }
     ],
+    remark:{
+        type:String,
+    },
+    
     is_in_stock:{
         type:Boolean,
         default:false
