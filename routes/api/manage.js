@@ -1166,7 +1166,7 @@ router.post('/import_to_stocks_by_invoice', auth,async (req,res)=> {
     }
 })
 router.post('/import_product_from_user', [auth,upload_invoices.array('files')],async (req,res)=> {
-    const {list,from,to,remark,driver='',car_code='',start_date} = req.body;
+    const {list = [],from,to,remark,driver='',car_code='',start_date} = req.body;
     try {
         console.log(req.body)
         let total_amount = 0
@@ -1775,7 +1775,7 @@ router.post('/list_invoice', auth,async (req,res)=> {
             })
        }
        else{
-            const list = await Invoice.find(query).populate('user','-password').populate('from').populate('to').sort( { create_date: -1 } ).skip((page - 1) * limit).limit(limit);
+            const list = await Invoice.find(query).populate('export_product_list.product').populate('export_list.stock').populate('user','-password').populate('from').populate('to').sort( { create_date: -1 } ).skip((page - 1) * limit).limit(limit);
             const total = await Invoice.countDocuments(query);
             //console.log(list);
             
@@ -1835,7 +1835,7 @@ router.post('/get_invoice', auth,async (req,res)=> {
             return  res.status(500).send({msg:'need invoice id'})
 
         }
-        const inv = await Invoice.findOne({_id:invoice_id}).populate('import_list.inventory').populate('import_stock_list.zone').populate('import_list.product').populate('from').populate('to').populate('import_list.zone').populate('stock').populate('export_list.stock').populate('export_list.zone').populate('user','-password');
+        const inv = await Invoice.findOne({_id:invoice_id}).populate('import_list.inventory').populate('import_stock_list.zone').populate('import_list.product').populate('from').populate('to').populate('import_list.zone').populate('stock').populate('export_list.stock').populate('export_product_list.product').populate('export_list.zone').populate('user','-password');
         console.log(inv);
         
         return res.json(inv)

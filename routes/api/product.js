@@ -75,6 +75,7 @@ router.post('/list',[auth],async (req,res)=> {
         console.log(req.body);
         
         var query ={
+            is_active:true
         };
         if(user!== undefined) query.user = user;
         if (search) {

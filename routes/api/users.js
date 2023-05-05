@@ -77,7 +77,6 @@ router.post('/update_profile',[auth,upload_avatar.single('avatar')], auth,async 
     ,company,personal_id,website,tel,tel_2,fax,role,is_person,is_active} = req.body;
 
     try {
-        console.log(req.body);
         let update_body  =  {name,last_name,user_name,admin,position,address,province,passcode
             ,company,personal_id,website,tel,tel_2,fax,role,is_person,is_active}
         if(req.file){
@@ -87,8 +86,8 @@ router.post('/update_profile',[auth,upload_avatar.single('avatar')], auth,async 
         // const user = await User.findOneAndUpdate({_id:req.user.id},{name,last_name,user_name,admin,position,address,province,passcode
         //     ,company,personal_id,website,tel,tel_2,fax,role,is_person,is_active})
 
+        console.log(update_body);
         User.findOneAndUpdate({_id: user_id},update_body, {}, function(err, user){  
-                console.log(err)
             if(err){
                return res.status(500);
             } else {

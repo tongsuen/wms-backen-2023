@@ -22,12 +22,16 @@ const AdminNotificationSchema = new mongoose.Schema({
         type:mongoose.Schema.Types.ObjectId,
         ref:'order',   
     },
+    file:{
+        type:mongoose.Schema.Types.ObjectId,
+        ref:'file',   
+    },
     avatar:{
         type:String,
     },
     type:{
         type:String,
-        enum: ['request','import', 'export','message', 'other'],
+        enum: ['request','import', 'export','message', 'other','file'],
     },
     title:{
         type:String,

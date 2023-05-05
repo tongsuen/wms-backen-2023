@@ -39,7 +39,10 @@ async (req,res)=> {
         if(!isMatch){
             return res.status(400).json({errors:[{msg:'Password not match'}]})
         }
+        if(user.is_active === false){
+            return res.status(400).json({errors:[{msg:'user disabled please contact admin'}]})
 
+        }
         const payload = {
             user:{
                 id:user.id,

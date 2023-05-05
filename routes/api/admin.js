@@ -132,6 +132,7 @@ router.post('/list_stock_out_pending', auth,async (req,res)=> {
 router.post('/accept_invoice', auth,async (req,res)=> {
     const {invoice_id,action} = req.body;
     try {
+        console.log(req.body)
         const stock_out = await Invoice.findOne({_id:invoice_id})
         
         const by_user = await User.findById(req.user.id)
@@ -160,12 +161,12 @@ router.post('/accept_invoice', auth,async (req,res)=> {
                 }
                 await stock.save()
             }
-            invoice.history = [
+            stock_out.history = [
                 {
                     status:'accept',
                     user:req.user.id,
                 },
-                ...invoice.history,
+                ...stock_out.history,
     
             ]
             send_noti(1,[],'นำสินค้าออกสำเร็จ','สินค้าของคุณได้รับการอนุมัติให้ออกจากคลังสินค้าแล้ว');
@@ -207,12 +208,12 @@ router.post('/accept_invoice', auth,async (req,res)=> {
                 }
             }
 
-            invoice.history = [
+            stock_out.history = [
                 {
                     status:'decline',
                     user:req.user.id,
                 },
-                ...invoice.history,
+                ...stock_out.history,
     
             ]
             send_noti(1,[],'นำสินค้าออกไม่สำเร็จ','ไม่สามารถเอาสินค้าออกจากคลังสินค้าได้ โปรดติดต่อเจ้าหน้าที่');
@@ -242,7 +243,7 @@ router.post('/accept_invoice', auth,async (req,res)=> {
                 console.log(alert)
                 await alert.save()
                 const io = req.app.get('socketio');
-                io.to(alert.user.toString()).emit('action', {type:'new_alert',data:alert});
+                io.to('admin').emit('action', {type:'new_alert',data:alert});
             }
         }
         await stock_out.save();
@@ -508,6 +509,21 @@ router.post('/create_file', [auth,upload_files.array('files')], async (req, res)
             file_obj.files.push(file.location)
         }))
         await file_obj.save()
+        const by_user = await User.findById(req.user.id)
+
+        if(!by_user.admin){
+            const alert = new AdminNotification({
+                file:file_obj,
+                type:'file',
+                by_user:by_user,
+                title:'สร้างเอกสาร',
+                detail:'ทำการสร้างเอกสาร'
+            })
+            await alert.save()
+            const io = req.app.get('socketio');
+            io.to('admin').emit('action', {type:'new_alert',data:alert});
+        }
+        
         res.json(file_obj);
     } catch (err) {
         console.error(err.message);
@@ -528,7 +544,7 @@ router.post('/delete_file',auth, async (req, res) => {
     }
 });
 router.post('/list_file', auth, async (req, res) => {
-    const { page=1,limit=10,start_date,end_date,is_active=true,search } = req.body;
+    const { page=1,limit=10,start_date,end_date,is_active=true,search ,user} = req.body;
   
     try {
         console.log(req.body)
@@ -536,13 +552,23 @@ router.post('/list_file', auth, async (req, res) => {
         if (search) {
             const searchRegex = new RegExp(search, 'i');
             query.$or = [
-                { name: { $regex: searchRegex } },
+                { 'name': { $regex: searchRegex } },
             ];
         }
+        if(user){
+            query.user = user
+        }
+        if(end_date && start_date){
+            var start = new Date(start_date)
+            start.setUTCHours(0,0,0,0);
 
-        if(end_date && start_date) query.create_date = { $gte: start_date, $lte: end_date}
+            var end = new Date(end_date)
+            end.setUTCHours(23,59,59,999);
+
+            query.create_date = { $gte:start, $lte:end}
+        }
         const list = await Files.find(query).populate('user').skip((page - 1) * limit).limit(limit).sort({create_date:-1});
-        const total = await Files.countDocuments({is_active:true});
+        const total = await Files.countDocuments(query);
         console.log(total)
         res.json({
             page:page,
