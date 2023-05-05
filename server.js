@@ -78,17 +78,16 @@ io.on('connection', (socket) => {
        // console.log('Got hello data!', action.data);
         //socket.emit('action', {type:'message', data:'good day!'});
         socket.join(action.data._id);
-        console.log('join user')
-        console.log(action.data._id)
+
       }
       else if(action.type === 'server/join_admin'){
          socket.join('admin');
-         console.log('join admin')
-         console.log(action.data._id)
+        //  console.log('join admin')
+        //  console.log(action.data._id)
        }
        else if(action.type === 'join_admin'){
         socket.join('admin');
-        console.log('join admin')
+        //console.log('join admin')
       }
     });
 });

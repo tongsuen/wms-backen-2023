@@ -34,6 +34,9 @@ router.post('/create',[auth,upload_inventories.array('images')],async (req,res)=
         await Promise.all(req.files.map(async (file) => {
             product.images.push(file.location)
         }))
+        if(product.images.length > 0){
+            product.image = product.images[0]
+        }
         await product.save()
         return res.status(200).send(product)
         
@@ -165,6 +168,9 @@ router.post('/update', [auth,upload_inventories.array('images')],async (req,res)
                 delete_obj(old)
             }
             inv.images = query.old_images
+            if(inv.images.length > 0){
+                inv.image = inv.images[0]
+            }
             inv = await inv.save()
         }
         else{
@@ -173,6 +179,7 @@ router.post('/update', [auth,upload_inventories.array('images')],async (req,res)
                 delete_obj(old)
             }
             inv.images = []
+            inv.image = null
             inv = await inv.save()
         }
         if(req.files){
@@ -182,7 +189,9 @@ router.post('/update', [auth,upload_inventories.array('images')],async (req,res)
             }))
             query.images = array;
         }
-       
+        if(query.images.length > 0){
+            query.image = query.images[0]
+        }
         Product.findOneAndUpdate({_id: query._id},{$set:query},{new:true, upsert: false},function(err,data){
             if(err){
                 console.log(err);

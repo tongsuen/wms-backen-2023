@@ -54,11 +54,11 @@ router.post('/latest_import', auth,async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 });
-router.post('/latest_export', async (req, res) => {
+router.post('/latest_export',auth, async (req, res) => {
   const {limit = 10} = req.body
   try {
     const list = await Invoice
-      .find({ is_active:true,status:'accept' })
+      .find({ is_active:true,status:'accept',user:req.user.id  })
       .populate('export_list.stock')
       .populate('to')
       .sort({ create_date: -1 })
