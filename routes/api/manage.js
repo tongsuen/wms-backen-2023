@@ -111,7 +111,6 @@ router.post('/create_inbox', [auth, upload_inboxs.array('files')], async (req, r
                     detail: ('ข้อความ: ' + inbox.detail)
                 })
                 await alert.save()
-                console.log(alert.user)
                 const io = req.app.get('socketio');
                 io.to(alert.user.toString()).emit('action', { type: 'new_alert', data: alert });
             }))
@@ -955,9 +954,11 @@ router.post('/import_to_stocks_approve', auth, async (req, res) => {
                 detail: 'ยกเลิกนำสินค้าเข้าคลัง'
             })
             await alert.save()
+            console.log('==>')
 
+            console.log(invoice.user.toString())
             const io = req.app.get('socketio');
-            io.to(invoice.user).emit('action', { type: 'new_alert', data: alert });
+            io.to(invoice.user.toString()).emit('action', { type: 'new_alert', data: alert });
 
             return res.json(invoice)
         }
@@ -1011,7 +1012,7 @@ router.post('/import_to_stocks_approve', auth, async (req, res) => {
         await alert.save()
 
         const io = req.app.get('socketio');
-        io.to(invoice.user).emit('action', { type: 'new_alert', data: alert });
+        io.to(invoice.user.toString()).emit('action', { type: 'new_alert', data: alert });
 
         res.json(invoice)
 
@@ -1187,7 +1188,7 @@ router.post('/import_to_stocks_by_invoice', auth, async (req, res) => {
         await alert.save()
 
         const io = req.app.get('socketio');
-        io.to(invoice.user).emit('action', { type: 'new_alert', data: alert });
+        io.to(invoice.user.toString()).emit('action', { type: 'new_alert', data: alert });
         res.json(newArray)
 
     } catch (err) {
@@ -1369,7 +1370,7 @@ router.post('/import_to_stocks', auth, async (req, res) => {
         await alert.save()
 
         const io = req.app.get('socketio');
-        io.to(invoice.user).emit('action', { type: 'new_alert', data: alert });
+        io.to(invoice.user.toString()).emit('action', { type: 'new_alert', data: alert });
         res.json(newArray)
 
     } catch (err) {
