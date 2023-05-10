@@ -121,8 +121,19 @@ router.post('/autocomplete_product',auth,async (req,res)=> {
     const {keyword,user} = req.body;
     try {
         console.log(req.user.id);
-        
-        const list_inv = await Product.find({name:{"$regex":keyword, '$options' : 'i' },user:user ? user : req.user.id})
+        let query = {
+
+        }
+        if(user){
+            query.user = user ? user : req.user.id
+        }
+        if(keyword){
+            query.name = { 
+                "$regex":keyword,
+                '$options' : 'i' 
+            }
+        }
+        const list_inv = await Product.find(query)
         
         return res.json(list_inv)
     }catch(err){

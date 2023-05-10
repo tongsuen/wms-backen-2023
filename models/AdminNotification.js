@@ -22,6 +22,14 @@ const AdminNotificationSchema = new mongoose.Schema({
         type:mongoose.Schema.Types.ObjectId,
         ref:'order',   
     },
+    product:{
+        type:mongoose.Schema.Types.ObjectId,
+        ref:'product',   
+    },
+    stock:{
+        type:mongoose.Schema.Types.ObjectId,
+        ref:'stock',   
+    },
     file:{
         type:mongoose.Schema.Types.ObjectId,
         ref:'file',   
@@ -31,7 +39,7 @@ const AdminNotificationSchema = new mongoose.Schema({
     },
     type:{
         type:String,
-        enum: ['request','import', 'export','message', 'other','file'],
+        enum: ['request','import', 'export','message', 'update','file'],
     },
     title:{
         type:String,

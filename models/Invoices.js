@@ -250,14 +250,17 @@ const InvoiceSchema = new mongoose.Schema({
     car_code:{
             type:String
     },
+   
     start_date : {
         type : Date,
     },
-    create_date : {
-        type : Date,
-        default : Date.now()
-    }
-});
+    
+},{
+    timestamps: {
+        createdAt: 'create_date',
+        updatedAt: 'update_date'
+}
+  });
 InvoiceSchema.pre('save', async function (next) {
     try {
       if (!this.ref_number) {

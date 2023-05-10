@@ -9,7 +9,8 @@ module.exports = function(req,res,next) {
     
     try {
         const decode = jwt.verify(token,config.get("jwtSecret"));
-        if(!decoded.user.admin) return res.status(401).json({msg:'This Token, not for admin'});
+        console.log(decode)
+        if(!decode.user.admin) return res.status(401).json({msg:'This Token, not for admin'});
         req.user = decode.user;
         
         next();

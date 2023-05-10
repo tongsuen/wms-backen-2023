@@ -5,6 +5,7 @@ const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
 const config = require('config')
 const auth =require('../../middleware/auth')
+const auth_admin =require('../../middleware/auth_admin')
 const moment =  require('moment')
 
 const {sendMessage} = require('../../push_noti')
@@ -281,6 +282,32 @@ router.post('/stock_active', auth,async (req,res)=> {
         res.status(500).send(err.message)
     }
 })
+
+router.post('/autocomplete_product',auth_admin,async (req,res)=> {
+    const {keyword,user} = req.body;
+    try {
+        let query = {
+            is_active:true
+        }
+        if(user){
+            query.user = user
+        }
+        if(keyword){
+            query.name = { 
+                "$regex":keyword,
+                '$options' : 'i' 
+            }
+        }
+
+        const list_inv = await Product.find(query)
+        
+        return res.json(list_inv)
+    }catch(err){
+        console.log(err.message);
+        res.status(500).send(err.message)
+    }
+})
+
 router.post('/list_history', auth,async (req,res)=> {
     const { stock_id, is_active =false } = req.body;
     try {

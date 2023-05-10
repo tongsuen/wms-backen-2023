@@ -30,9 +30,12 @@ connectDB();
 // Init Middleware
 app.use(express.json())
 app.use(cors())
+app.use(morgan(':method :url :status :res[content-length] - :response-time ms'))
+
 app.get('/', (req, res) => {
   res.send('wms server running...')
 })
+
 // Setup the logger middleware
 
 //const accessLogStream = fs.createWriteStream(path.join(__dirname, 'logs.log'), { flags: 'a' });
@@ -60,6 +63,7 @@ app.use('/api/order',require('./routes/api/order'))
 app.use('/api/product',require('./routes/api/product'))
 // Route Customer API
 app.use('/api/customer/stock',require('./routes/api/customer/stock'))
+app.use('/api/get/stock',require('./routes/api_v2/get/stock'))
 
 // Serve static assets in production
 if(process.env.NODE_ENV == 'production'){

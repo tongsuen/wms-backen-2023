@@ -193,14 +193,28 @@ router.post('/update', [auth,upload_inventories.array('images')],async (req,res)
         if(query.images.length > 0){
             query.image = query.images[0]
         }
+
+        
         Product.findOneAndUpdate({_id: query._id},{$set:query},{new:true, upsert: false},function(err,data){
             if(err){
                 console.log(err);
-               return res.status(500).json(err);
+                return res.status(500).json(err);
             } else {
-                    console.log(data);
-                    
-                    return res.json(data);
+                if(!req.user.admin){
+                        
+                    const alert = new AdminNotification({
+                        product: data._id,
+                        type: 'update',
+                        user: req.user.id,
+                        by_user:  req.user.id,
+                        title: 'ข้อความถึงผู้ดูเเล',
+                        detail: ('อัพเดตข้อมูล: ' + data.name)
+                    })
+                    const io = req.app.get('socketio');
+                    io.to('admin').emit('action', { type: 'new_alert', data: alert });
+                    alert.save()
+                }                    
+                return res.json(data);
             }
         });
     }catch(err){
