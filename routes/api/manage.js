@@ -957,6 +957,7 @@ router.post('/import_to_stocks_approve', auth, async (req, res) => {
             await alert.save()
 
             const io = req.app.get('socketio');
+            console.log(alert)
             io.to(alert.user).emit('action', { type: 'new_alert', data: alert });
 
             return res.json(invoice)
