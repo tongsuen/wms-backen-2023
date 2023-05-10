@@ -957,8 +957,7 @@ router.post('/import_to_stocks_approve', auth, async (req, res) => {
             await alert.save()
 
             const io = req.app.get('socketio');
-            console.log(alert)
-            io.to(alert.user).emit('action', { type: 'new_alert', data: alert });
+            io.to(invoice.user).emit('action', { type: 'new_alert', data: alert });
 
             return res.json(invoice)
         }
@@ -1012,7 +1011,7 @@ router.post('/import_to_stocks_approve', auth, async (req, res) => {
         await alert.save()
 
         const io = req.app.get('socketio');
-        io.to(alert.user).emit('action', { type: 'new_alert', data: alert });
+        io.to(invoice.user).emit('action', { type: 'new_alert', data: alert });
 
         res.json(invoice)
 
@@ -1188,7 +1187,7 @@ router.post('/import_to_stocks_by_invoice', auth, async (req, res) => {
         await alert.save()
 
         const io = req.app.get('socketio');
-        io.to(alert.user).emit('action', { type: 'new_alert', data: alert });
+        io.to(invoice.user).emit('action', { type: 'new_alert', data: alert });
         res.json(newArray)
 
     } catch (err) {
@@ -1370,7 +1369,7 @@ router.post('/import_to_stocks', auth, async (req, res) => {
         await alert.save()
 
         const io = req.app.get('socketio');
-        io.to(alert.user).emit('action', { type: 'new_alert', data: alert });
+        io.to(invoice.user).emit('action', { type: 'new_alert', data: alert });
         res.json(newArray)
 
     } catch (err) {
