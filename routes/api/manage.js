@@ -26,6 +26,36 @@ const AdminNotification = require('../../models/AdminNotification')
 const Location = require('../../models/Location')
 
 const Product = require('../../models/Product')
+
+
+router.post('/socket_io_to_admin', auth, async (req, res) => {
+
+    try {
+        const io = req.app.get('socketio');
+        io.to('admin').emit('action', { type: 'new_alert', data: [] });
+        return res.json({})
+
+
+    } catch (err) {
+        console.log(err.message);
+        res.status(500).send(err.message)
+    }
+})
+router.post('/socket_io_to_client', auth, async (req, res) => {
+        const {user} = req.body
+    try {
+        const io = req.app.get('socketio');
+
+        console.log(io.sockets.adapter.rooms)
+        io.to(user).emit('action', { type: 'new_alert', data: [] });
+        return res.json({})
+
+
+    } catch (err) {
+        console.log(err.message);
+        res.status(500).send(err.message)
+    }
+})
 router.post('/create_inbox', [auth, upload_inboxs.array('files')], async (req, res) => {
     const { type } = req.body
     try {
