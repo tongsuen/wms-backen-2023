@@ -656,11 +656,20 @@ router.post('/longest_stock', auth, async (req, res) => {
         $limit: 10 // Return only the top 10 stocks
       },
       {
+        $lookup: {
+          from: "zone",
+          localField: "zone",
+          foreignField: "zone",
+          as: "zone"
+        }
+      },
+      {
         $project: {
           _id: 1,
           name: 1,
           days_in_warehouse: 1,
           create_date:1,
+          zone:'$zone.name',
         }
       }
     ]);

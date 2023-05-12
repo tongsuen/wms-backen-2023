@@ -20,7 +20,7 @@ const InvoiceSchema = new mongoose.Schema({
         type:mongoose.Schema.Types.ObjectId,
         ref:'user',
     },
-    export_product_list:[{//for export product by user
+    export_product_list:[{//for export product by user and admin assing stock again
         product:{
             type:mongoose.Schema.Types.ObjectId,
             ref:'product',
@@ -250,7 +250,6 @@ const InvoiceSchema = new mongoose.Schema({
     car_code:{
             type:String
     },
-   
     start_date : {
         type : Date,
     },

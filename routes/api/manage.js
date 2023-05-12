@@ -523,7 +523,7 @@ router.post('/get_inventory', auth, async (req, res) => {
 router.post('/list_inventory', auth, async (req, res) => {
     const { user, search, is_in_stock, page = 1, limit = 10, is_active = true } = req.body;
     try {
-        var query = { is_active };
+        var query = { };
         if (user !== undefined) query.user = user;
         if (is_in_stock !== undefined) query.is_in_stock = is_in_stock;
         if (search) {
@@ -1197,7 +1197,7 @@ router.post('/import_to_stocks_by_invoice', auth, async (req, res) => {
     }
 })
 router.post('/import_product_from_user', [auth, upload_invoices.array('files')], async (req, res) => {
-    const { list = [], from, to, remark, driver = '', car_code = '', start_date } = req.body;
+    const { list = [], from, to, remark, driver = '', car_code = '',user, start_date } = req.body;
     try {
         console.log(req.body)
         let total_amount = 0
@@ -1233,7 +1233,7 @@ router.post('/import_product_from_user', [auth, upload_invoices.array('files')],
         stock_out.amount = total_amount;
         stock_out.sub_amount = total_sub_amount;
         stock_out.create_by = by_user
-        stock_out.user = by_user;
+        stock_out.user = user ? user : by_user;
         stock_out.import_list = newArray
         if (from) stock_out.from = from
         if (to) stock_out.to = to
@@ -1256,21 +1256,38 @@ router.post('/import_product_from_user', [auth, upload_invoices.array('files')],
 
         send_noti(1, [], 'นำสินค้าเข้าคลัง', 'นำสินค้าเข้าคลัง');
 
+        if(user){
+            const alert = await Notification({
+                invoice: stock_out,
+                type: 'import',
+                user: user,
+                by_user: by_user,
+                title: 'นำสินค้าเข้าคลัง',
+                detail: 'คำร้องนำสินค้าเข้าคลังถูกสร้าง'
+            })
+            await alert.save()
+    
+            const io = req.app.get('socketio');
+            io.to(user).emit('action', { type: 'new_alert', data: alert });
+    
+    
+        }
+       else{
+            const alert = await AdminNotification({
+                invoice: stock_out,
+                type: 'import',
+                user: by_user,
+                by_user: by_user,
+                title: 'นำสินค้าเข้าคลัง',
+                detail: by_user?.name + ' คำร้องนำสินค้าเข้าคลัง'
+            })
+            await alert.save()
 
-        const alert = await AdminNotification({
-            invoice: stock_out,
-            type: 'import',
-            user: by_user,
-            by_user: by_user,
-            title: 'นำสินค้าเข้าคลัง',
-            detail: by_user?.name + ' คำร้องนำสินค้าเข้าคลัง'
-        })
-        await alert.save()
-
-        const io = req.app.get('socketio');
-        io.to('admin').emit('action', { type: 'new_alert', data: alert });
+            const io = req.app.get('socketio');
+            io.to('admin').emit('action', { type: 'new_alert', data: alert });
 
 
+       }
         res.json(stock_out)
 
     } catch (err) {
@@ -1326,7 +1343,7 @@ router.post('/import_to_stocks', auth, async (req, res) => {
             stock.current_amount = amount
             stock.amount = amount
             stock.user = user
-            stock.status = 'accept'
+            stock.status = 'pending'
             await stock.save()
             await inv.save()
 
@@ -1370,7 +1387,7 @@ router.post('/import_to_stocks', auth, async (req, res) => {
         await alert.save()
 
         const io = req.app.get('socketio');
-        io.to(invoice.user.toString()).emit('action', { type: 'new_alert', data: alert });
+        io.to(stock_in.user.toString()).emit('action', { type: 'new_alert', data: alert });
         res.json(newArray)
 
     } catch (err) {
@@ -1612,6 +1629,7 @@ router.post('/export_out_stocks', [auth, upload_invoices.array('files')], async 
         stock_out.driver = driver
         stock_out.car_code = car_code
         stock_out.remark = remark
+        stock_out.status = 'pending'
         if (req.files) {
             var array = []
             await Promise.all(req.files.map(async (file) => {
