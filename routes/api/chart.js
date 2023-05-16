@@ -20,7 +20,7 @@ const Zone = require('../../models/Zone')
 router.post('/total_item_in_zone', auth,async (req,res)=> {
     const {name,user} = req.body;
     try {
-        console.log(req.user.id)
+        //console.log(req.user.id)
         const list = await Stocks.aggregate([
             
             { $match: { is_active: true,user: new mongoose.Types.ObjectId(req.user.id) } },
@@ -35,7 +35,7 @@ router.post('/total_item_in_zone', auth,async (req,res)=> {
          ])
          return res.json(list)
     }catch(err){
-        console.log(err.message);
+        //console.log(err.message);
         res.status(500).send('p Error')
     }
 })
@@ -57,7 +57,7 @@ router.post('/history_by_date', auth,async (req,res)=> {
          ])
          return res.json(list)
     }catch(err){
-        console.log(err.message);
+        //console.log(err.message);
         res.status(500).json({message:err.message,error:true})
     }
 })
@@ -80,7 +80,7 @@ router.post('/stock_by_user', auth,async (req,res)=> {
          ])
          return res.json(list)
     }catch(err){
-        console.log(err.message);
+        //console.log(err.message);
         res.status(500).json({message:err.message,error:true})
     }
 })
@@ -103,7 +103,7 @@ router.post('/stocks_out',async (req,res)=> {
          ])
          return res.json(list)
     }catch(err){
-        console.log(err.message);
+        //console.log(err.message);
         res.status(500).json({message:err.message,error:true})
     }
 })
@@ -119,11 +119,11 @@ router.post('/stock_out',async (req,res)=> {
            
             
          ])
-         console.log(list);
+         //console.log(list);
          
          return res.json(list)
     }catch(err){
-        console.log(err.message);
+        //console.log(err.message);
         res.status(500).json({message:err.message,error:true})
     }
 })
@@ -189,11 +189,11 @@ router.post('/stock_out_by_month',auth,async (req,res)=> {
             }
             
          ])
-         console.log(list);
+         //console.log(list);
          
          return res.json(list)
     }catch(err){
-        console.log(err.message);
+        //console.log(err.message);
         res.status(500).json({message:err.message,error:true})
     }
 })
@@ -259,11 +259,11 @@ router.post('/stock_in_by_month',auth,async (req,res)=> {
             }
             
          ])
-         console.log(list);
+         //console.log(list);
          
          return res.json(list)
     }catch(err){
-        console.log(err.message);
+        //console.log(err.message);
         res.status(500).json({message:err.message,error:true})
     }
 })
@@ -280,11 +280,11 @@ router.post('/history', auth,async (req,res)=> {
            
             
          ])
-         console.log(list);
+         //console.log(list);
          
          return res.json(list)
     }catch(err){
-        console.log(err.message);
+        //console.log(err.message);
         res.status(500).json({message:err.message,error:true})
     }
 })
@@ -317,7 +317,7 @@ router.post('/percent_item_in_stock', auth,async (req,res)=> {
           });
           
     }catch(err){
-        console.log(err.message);
+        //console.log(err.message);
         return res.status(500).json({message:err.message,error:true})
     }
 })

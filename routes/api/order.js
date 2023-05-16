@@ -28,7 +28,7 @@ router.post('/create_order',auth,async (req,res)=> {
         return res.json(order)
 
     }catch(err){
-        console.log(err.message);
+        //console.log(err.message);
         res.status(500).send(err.message)
     }
 })
@@ -43,13 +43,13 @@ router.post('/remove_order',auth,async (req,res)=> {
         return res.json(del)
 
     }catch(err){
-        console.log(err.message);
+        //console.log(err.message);
         res.status(500).send(err.message)
     }
 })
 router.post('/update_order',auth,async (req,res)=> {
    
-    console.log(req.body)
+    //console.log(req.body)
     try {
         Order.findOneAndUpdate({_id:req.body._id}, req.body, function(err, doc) {
             if (err) return res.send(500, {error: err});
@@ -57,7 +57,7 @@ router.post('/update_order',auth,async (req,res)=> {
         });
 
     }catch(err){
-        console.log(err.message);
+        //console.log(err.message);
         res.status(500).send(err.message)
     }
 })
@@ -88,7 +88,7 @@ router.post('/sync_order_to_iventory',auth,async (req,res)=> {
         return res.send({success:true});
 
     }catch(err){
-        console.log(err.message);
+        //console.log(err.message);
         res.status(500).send(err.message)
     }
 })
@@ -106,7 +106,7 @@ router.post('/list_order',auth,async (req,res)=> {
             sort_query.import_date = 1
             var start = new Date();
             start.setHours(0, 0, 0, 0);
-            console.log(start)
+            //console.log(start)
             query.import_date = { $gte:start}
         }
 
@@ -132,7 +132,7 @@ router.post('/list_order',auth,async (req,res)=> {
         })
 
     }catch(err){
-        console.log(err.message);
+        //console.log(err.message);
         res.status(500).send(err.message)
     }
 })
@@ -145,7 +145,7 @@ router.post('/get_order',auth,async (req,res)=> {
         return res.json(order)
 
     }catch(err){
-        console.log(err.message);
+        //console.log(err.message);
         res.status(500).send(err.message)
     }
 })

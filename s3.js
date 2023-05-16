@@ -34,7 +34,7 @@ const multerS3Config_avatar = multerS3({
         cb(null, { fieldName: file.fieldname });
     },
     key: function (req, file, cb) {
-        console.log(file)
+        //console.log(file)
         cb(null, 'avatar/' + new Date().toISOString() + '-' +Math.random().toString(36).slice(-8)+ file.originalname)
     }
 });
@@ -54,7 +54,7 @@ const multerS3Config_inboxs = multerS3({
         cb(null, { fieldName: file.fieldname });
     },
     key: function (req, file, cb) {
-        console.log(file)
+        //console.log(file)
         cb(null, 'inboxs/' + new Date().toISOString() + '-' +Math.random().toString(36).slice(-8)+ file.originalname)
     }
 });
@@ -73,7 +73,7 @@ const multerS3Config_inventories = multerS3({
         cb(null, { fieldName: file.fieldname });
     },
     key: function (req, file, cb) {
-        console.log(file)
+        //console.log(file)
         cb(null, 'inventories/' + new Date().toISOString() + '-'+Math.random().toString(36).slice(-8) + file.originalname)
     }
 });
@@ -92,7 +92,7 @@ const multerS3Config_invoices = multerS3({
         cb(null, { fieldName: file.fieldname });
     },
     key: function (req, file, cb) {
-        console.log(file)
+        //console.log(file)
         cb(null, 'invoices/' + new Date().toISOString() + '-'+Math.random().toString(36).slice(-8) + file.originalname)
     }
 });
@@ -111,7 +111,7 @@ const multerS3Config_notes = multerS3({
         cb(null, { fieldName: file.fieldname });
     },
     key: function (req, file, cb) {
-        console.log(file)
+        //console.log(file)
         cb(null, 'notes/' + new Date().toISOString() + '-'+Math.random().toString(36).slice(-8) + file.originalname)
     }
 });
@@ -130,7 +130,7 @@ const multerS3Config_files = multerS3({
         cb(null, { fieldName: file.fieldname });
     },
     key: function (req, file, cb) {
-        console.log(file)
+        //console.log(file)
         cb(null, 'files/' + new Date().toISOString() + '-'+Math.random().toString(36).slice(-8) + file.originalname)
     }
 });
@@ -147,10 +147,10 @@ const delete_obj = (obj) =>{
     try {
         const uri = obj
         const { region, bucket, key } = AmazonS3URI(uri)
-        console.log(key)
+        //console.log(key)
         s3.deleteObject({ Bucket: bucketName, Key: key }, (err, data) => {
             console.error(err);
-            console.log(data);
+            //console.log(data);
         });
       } catch (err) {
         console.warn(`${uri} is not a valid S3 uri`) // should not happen because `uri` is valid in that example

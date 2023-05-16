@@ -15,7 +15,7 @@ router.post('/me', auth,async (req,res)=> {
         res.json(user)
 
     }catch(err){
-        console.log(err.message);
+        //console.log(err.message);
         res.status(500).send(err.message)
     }
 })
@@ -56,7 +56,7 @@ async (req,res)=> {
             res.json({token})
         });
      }catch(err){
-        console.log(err.message);
+        //console.log(err.message);
         res.status(500).send("Server error");
      }
 });
@@ -87,7 +87,7 @@ async (req,res)=> {
 
         return res.json({success:1,email:user.email})
      }catch(err){
-        console.log(err.message);
+        //console.log(err.message);
         res.status(500).send("Server error");
      }
 });
@@ -104,7 +104,7 @@ async (req,res)=> {
          require('crypto').randomBytes(48,async function(err, buffer) {
             var token = buffer.toString('hex');
             user.token = token;
-            console.log(user);
+            //console.log(user);
             
             await user.save();
             
@@ -127,14 +127,14 @@ async (req,res)=> {
                 html: "<a href='http://glacial-reef-62195.herokuapp.com/reset_password/"+token+"'>reset password?</a>", // html body
             });
 
-            console.log("Message sent: %s", info.messageId);
+            //console.log("Message sent: %s", info.messageId);
         });
           
 
         return res.json('Check your email')
 
      }catch(err){
-        console.log(err.message);
+        //console.log(err.message);
         res.status(500).send("Server error");
      }
 });
@@ -167,7 +167,7 @@ router.post('/register',upload_avatar.single('avatar'),async (req,res)=> {
 
         }
         // get user gravatar
-        console.log(req.body)
+        //console.log(req.body)
 
         user = new User({
             name,
@@ -192,7 +192,7 @@ router.post('/register',upload_avatar.single('avatar'),async (req,res)=> {
             user.avatar = req.file.location;
             
         }
-        console.log(req.body);
+        //console.log(req.body);
         
         // ecrypt
         const salt = await bcrypt.genSalt(10);
@@ -220,7 +220,7 @@ router.post('/register',upload_avatar.single('avatar'),async (req,res)=> {
          );
 
     } catch (error) {
-        console.log(error.message);
+        //console.log(error.message);
         res.status(500).send('Server error '+error.message);
     }
 })

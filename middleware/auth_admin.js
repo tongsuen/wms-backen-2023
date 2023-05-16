@@ -9,13 +9,13 @@ module.exports = function(req,res,next) {
     
     try {
         const decode = jwt.verify(token,config.get("jwtSecret"));
-        console.log(decode)
+        //console.log(decode)
         if(!decode.user.admin) return res.status(401).json({msg:'This Token, not for admin'});
         req.user = decode.user;
         
         next();
     }catch(err){
-        console.log(err);
+        //console.log(err);
         
         res.status(401).json({msg:'Token is not valid'})
     }

@@ -27,18 +27,18 @@ const send_noti = async (type = 1,users_id =[],title='',msg='') => {
     if(type == 1){
         //send push to all admin
         const users = await User.find({"expo_token":{$exists:true},admin:true})
-        console.log(users)
+        //console.log(users)
         sendMessage(users,title,msg)
     }
     if(type == 2){
         //send push to all admin
         const users = await User.find({"expo_token":{$exists:true},admin:false})
-        console.log(users)
+        //console.log(users)
         sendMessage(users,title,msg)
     }
     if(type == 3){
         const users = await User.find({"expo_token":{$exists:true},"_id" : { $in : users_id }})
-        console.log(users)
+        //console.log(users)
         sendMessage(users,title,msg)
     }
  
@@ -51,7 +51,7 @@ router.post('/list_admin', auth,async (req,res)=> {
         res.json(list)
 
     }catch(err){
-        console.log(err.message);
+        //console.log(err.message);
         res.status(500).send(err.message)
     }
 })
@@ -63,7 +63,7 @@ router.post('/list_user', auth,async (req,res)=> {
         res.json(list)
 
     }catch(err){
-        console.log(err.message);
+        //console.log(err.message);
         res.status(500).send(err.message)
     }
 })
@@ -76,7 +76,7 @@ router.post('/remove_inventory', auth,async (req,res)=> {
         res.json(inv)
 
     }catch(err){
-        console.log(err.message);
+        //console.log(err.message);
         res.status(500).send(err.message)
     }
 })
@@ -105,7 +105,7 @@ router.post('/update_request_invoice', auth,async (req,res)=> {
         res.json(invoice)
 
     }catch(err){
-        console.log(err.message);
+        //console.log(err.message);
         res.status(500).send(err.message)
     }
 })
@@ -116,7 +116,7 @@ router.post('/list_stock_out_pending', auth,async (req,res)=> {
             type:2,
             status:1
         };
-        console.log(query)
+        //console.log(query)
         const list = await Invoice.find(query).populate('inventory').populate('stock').skip((page - 1) * limit).limit(limit).sort({create_date:-1});
         const total = await Invoice.countDocuments(query);
         res.json({
@@ -126,14 +126,14 @@ router.post('/list_stock_out_pending', auth,async (req,res)=> {
         })
 
     }catch(err){
-        console.log(err.message);
+        //console.log(err.message);
         res.status(500).send(err.message)
     }
 })
 router.post('/accept_invoice', auth,async (req,res)=> {
     const {invoice_id,action} = req.body;
     try {
-        console.log(req.body)
+        //console.log(req.body)
         const stock_out = await Invoice.findOne({_id:invoice_id})
         
         const by_user = await User.findById(req.user.id)
@@ -143,7 +143,7 @@ router.post('/accept_invoice', auth,async (req,res)=> {
 
             for (let i = 0; i < stock_out.export_list.length; i++) {
                 const stkInfo=  stock_out.export_list[i]
-                console.log(stkInfo)
+                //console.log(stkInfo)
                 const stock = await Stocks.findById(stkInfo.stock);
              
                 if(stock.current_amount === stkInfo.amount && stock.current_sub_amount === stkInfo.sub_amount){
@@ -180,7 +180,7 @@ router.post('/accept_invoice', auth,async (req,res)=> {
                 detail:'สินค้าของคุณได้รับการอนุมัติให้ออกจากคลังสินค้าแล้ว'
             })
             await alert.save()
-            console.log(alert)
+            //console.log(alert)
             const io = req.app.get('socketio');
             io.to(alert.user.toString()).emit('action', {type:'new_alert',data:alert});
         }
@@ -198,7 +198,7 @@ router.post('/accept_invoice', auth,async (req,res)=> {
             else {
                 for (let i = 0; i < stock_out.export_list.length; i++) {
                     const stk=  stock_out.export_list[i]
-                    console.log(stk)
+                    //console.log(stk)
                     const stock = await Stocks.findById(stk.stock);
                  
                     stock.prepare_out = 0
@@ -227,7 +227,7 @@ router.post('/accept_invoice', auth,async (req,res)=> {
                     title:'นำสินค้าออกไม่สำเร็จ',
                     detail:'ไม่สามารถเอาสินค้าออกจากคลังสินค้าได้ โปรดติดต่อเจ้าหน้าที่'
                 })
-                console.log(alert)
+                //console.log(alert)
                 await alert.save()
                 const io = req.app.get('socketio');
                 io.to(alert.user.toString()).emit('action', {type:'new_alert',data:alert});
@@ -241,7 +241,7 @@ router.post('/accept_invoice', auth,async (req,res)=> {
                     title:'ลูกค้ายกเลิกคำร้อง',
                     detail:'ทำการยกเลิกคำร้อง'
                 })
-                console.log(alert)
+                //console.log(alert)
                 await alert.save()
                 const io = req.app.get('socketio');
                 io.to('admin').emit('action', {type:'new_alert',data:alert});
@@ -251,7 +251,7 @@ router.post('/accept_invoice', auth,async (req,res)=> {
         res.json(stock_out)
 
     }catch(err){
-        console.log(err.message);
+        //console.log(err.message);
         res.status(500).send(err.message)
     }
 })
@@ -264,7 +264,7 @@ router.post('/update_invoice', auth,async (req,res)=> {
         res.json(doc)
 
     }catch(err){
-        console.log(err.message);
+        //console.log(err.message);
         res.status(500).send(err.message)
     }
 })
@@ -278,7 +278,7 @@ router.post('/stock_active', auth,async (req,res)=> {
         res.json(stock)
 
     }catch(err){
-        console.log(err.message);
+        //console.log(err.message);
         res.status(500).send(err.message)
     }
 })
@@ -303,7 +303,7 @@ router.post('/autocomplete_product',auth_admin,async (req,res)=> {
         
         return res.json(list_inv)
     }catch(err){
-        console.log(err.message);
+        //console.log(err.message);
         res.status(500).send(err.message)
     }
 })
@@ -313,11 +313,11 @@ router.post('/list_history', auth,async (req,res)=> {
     try {
 
          const fff = await History.find().sort({create_date:-1})
-         console.log(fff)
+         //console.log(fff)
         res.json(fff)
 
     }catch(err){
-        console.log(err.message);
+        //console.log(err.message);
         res.status(500).send(err.message)
     }
 })
@@ -335,7 +335,7 @@ router.post('/list_move_stock', auth,async (req,res)=> {
 
 
     }catch(err){
-        console.log(err.message);
+        //console.log(err.message);
         res.status(500).send(err.message)
     }
 })
@@ -355,7 +355,7 @@ router.post('/move_stock', auth, async (req, res) => {
           .status(400)
           .json({ message: 'Your number is more than the existing inventory' });
       }
-      console.log(stk)
+      //console.log(stk)
       if (amount === stk.current_amount && sub_amount === stk.current_sub_amount) {
     
             const moveDoc = new Move({
@@ -438,7 +438,7 @@ router.post('/move_stock', auth, async (req, res) => {
                 flow_balance: flowBalance,
                 user: byUser,
             });
-            console.log(newStock)
+            //console.log(newStock)
             await Promise.all([stk.save(), newStock.save(), moveDoc.save()]);
             res.json(newStock);
       }
@@ -451,7 +451,7 @@ router.post('/combine_stock', auth, async (req, res) => {
     const { list, zone,remark } = req.body;
   
     try {
-        console.log(req.body)
+        //console.log(req.body)
       const stockIds = list.map((stk) => stk.stock);
       const stocksInfo = await Stocks.find({ _id: { $in: stockIds } });
       const totalAmount = list.reduce((total, stk) => total + stk.amount, 0);
@@ -574,7 +574,7 @@ router.post('/list_file', auth, async (req, res) => {
     const { page=1,limit=10,start_date,end_date,is_active=true,search ,user} = req.body;
   
     try {
-        console.log(req.body)
+        //console.log(req.body)
         let query = {is_active:is_active}
         if (search) {
             const searchRegex = new RegExp(search, 'i');
@@ -596,7 +596,7 @@ router.post('/list_file', auth, async (req, res) => {
         }
         const list = await Files.find(query).populate('user').skip((page - 1) * limit).limit(limit).sort({create_date:-1});
         const total = await Files.countDocuments(query);
-        console.log(total)
+        //console.log(total)
         res.json({
             page:page,
             list:list,
@@ -616,7 +616,7 @@ router.get('/delete_data', async (req, res) => {
       .catch((err) => console.error(err));
 
     //   Stocks.deleteMany({})
-    //   .then(() => console.log('All data removed'))
+    //   .then(() => //console.log('All data removed'))
     //   .catch((err) => console.error(err));
 
       res.json({});
@@ -651,7 +651,7 @@ router.get('/create_data', async (req, res) => {
                 const rand = Math.floor(Math.random() * count);
                 const user = await User.findOne().skip(rand);
         
-                console.log(list)
+                //console.log(list)
                 const invoice = new Invoice({
                   user: user,
                   list,
@@ -674,7 +674,7 @@ router.get('/create_data', async (req, res) => {
                 invoice.create_date = invoiceDate;
 
                 const result = await invoice.save();
-                console.log(`Invoice ${result._id} created with list:`, list);
+                //console.log(`Invoice ${result._id} created with list:`, list);
             }
         }
        

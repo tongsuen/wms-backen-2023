@@ -19,12 +19,12 @@ const Zone = require('../../models/Zone')
 
 router.post('/get_stock',async (req,res)=> {
     const {stock_id} = req.body;
-    console.log(req.body)
+    //console.log(req.body)
     try {
         const stock = await Stocks.findOne({_id:stock_id}).populate('inventory')
         return res.json(stock)
     }catch(err){
-        console.log(err.message);
+        //console.log(err.message);
         res.status(500).send('Server Error')
     }
 })

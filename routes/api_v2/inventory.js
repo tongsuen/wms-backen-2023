@@ -28,8 +28,8 @@ router.post('/create_inventory', [auth,upload_inventories.array('images')], asyn
         const { body } = req;
         const { files } = req;
 
-        console.log(req.file.path);
-        console.log(body);
+        //console.log(req.file.path);
+        //console.log(body);
 
         const inv = new Inventory(body);
 
@@ -39,15 +39,15 @@ router.post('/create_inventory', [auth,upload_inventories.array('images')], asyn
         await inv.save();
         res.json(inv);
     } catch(err) {
-        console.log(err.message);
+        //console.log(err.message);
         res.status(500).send(err.message);
     }
 });
 router.post('/update_inventory', [auth,upload_inventories.array('images')],async (req,res)=> {
 
     try {
-        console.log(req.files);//req.file.path
-        console.log(req.body);
+        //console.log(req.files);//req.file.path
+        //console.log(req.body);
         const query = req.body;
         
         // Set missing properties to null
@@ -92,11 +92,11 @@ router.post('/update_inventory', [auth,upload_inventories.array('images')],async
         // Update the inventory document in the database
         const updatedInv = await Inventory.findOneAndUpdate({_id: query.inv_id},{$set:query},{new:true, upsert: false})
 
-        console.log(updatedInv);
+        //console.log(updatedInv);
         res.json(updatedInv);
         
     }catch(err){
-        console.log(err.message);
+        //console.log(err.message);
         res.status(500).send(err.message)
     }
 })
@@ -128,7 +128,7 @@ router.post('/list_inventory', auth, async (req, res) => {
         total
       });
     } catch (err) {
-      console.log(err.message);
+      //console.log(err.message);
       res.status(500).send(err.message);
     }
   });

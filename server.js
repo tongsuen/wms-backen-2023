@@ -30,7 +30,12 @@ connectDB();
 // Init Middleware
 app.use(express.json())
 app.use(cors())
-app.use(morgan(':method :url :status :res[content-length] - :response-time ms'))
+morgan.token('body', req => {
+  return JSON.stringify(req.body)
+})
+
+
+app.use(morgan(':method :url :status :body - :response-time ms'))
 
 app.get('/', (req, res) => {
   res.send('wms server running...')
@@ -74,25 +79,25 @@ if(process.env.NODE_ENV == 'production'){
     })
 }
 io.on('connection', (socket) => {
-    console.log("Socket connected: " + socket.id);
+    //console.log("Socket connected: " + socket.id);
     
     socket.on('action', (action) => {
       
       if(action.type === 'server/join'){
-       // console.log('Got hello data!', action.data);
+       // //console.log('Got hello data!', action.data);
         //socket.emit('action', {type:'message', data:'good day!'});
-        console.log(action)
+        //console.log(action)
         socket.join(action.data._id);
       }
       else if(action.type === 'server/join_admin'){
-          console.log(action)
+          //console.log(action)
          socket.join('admin');
-        //  console.log('join admin')
-        //  console.log(action.data._id)
+        //  //console.log('join admin')
+        //  //console.log(action.data._id)
        }
        else if(action.type === 'join_admin'){
         socket.join('admin');
-        //console.log('join admin')
+        ////console.log('join admin')
       }
     });
 });
@@ -103,7 +108,7 @@ const PORT = process.env.PORT || 5000;
 serverHttp.listen(PORT, ()=> console.log('server started on port ' + PORT));
 
 // server.listen(3333, () => {
-//     console.log('listening on *:3333');
+//     //console.log('listening on *:3333');
     
 // });
 
@@ -125,7 +130,7 @@ serverHttp.listen(PORT, ()=> console.log('server started on port ' + PORT));
 //     const current_day = moment()
 //     await StocksHistory.deleteMany({day:current_day.format('D'),month:current_day.format('M'),year:current_day.format('YYYY')})
 
-//     console.log(current_day);
+//     //console.log(current_day);
 //     const list = await Stocks.find({is_active:true});
 //     for(const index in list){
 //         const stock = list[index];
@@ -146,5 +151,5 @@ serverHttp.listen(PORT, ()=> console.log('server started on port ' + PORT));
 //         await item.save();
 //     }
 //     const h_list = await StocksHistory.find();
-//     console.log(h_list);
+//     //console.log(h_list);
 // });

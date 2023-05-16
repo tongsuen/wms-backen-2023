@@ -47,12 +47,12 @@ router.get('/list_stocks', auth, async (req, res) => {
             query.inventory = { $in: expiringInventory.map(item => item._id) }
 
         }
-        console.log(query);
+        //console.log(query);
      
         const list = await Stocks.find(query).populate('user','-password').populate('inventory').populate('product').populate('zone').skip((page - 1) * limit).limit(limit)
             .sort({ create_date: -1 });
         const total = await Stocks.countDocuments(query);
-        //console.log(list);
+        ////console.log(list);
         res.json({
             page: page,
             list: list,
@@ -60,7 +60,7 @@ router.get('/list_stocks', auth, async (req, res) => {
         })
 
     } catch (err) {
-        console.log(err.message);
+        //console.log(err.message);
         res.status(500).send(err.message)
     }
 })
@@ -79,7 +79,7 @@ router.get('/list_stocks_by_name', auth, async (req, res) => {
             ];
         }
 
-        console.log(req.body)
+        //console.log(req.body)
         const list = await Stocks.aggregate([
             { $match: query },
             {
@@ -128,7 +128,7 @@ router.get('/list_stocks_by_name', auth, async (req, res) => {
         res.json(list)
 
     } catch (err) {
-        console.log(err.message);
+        //console.log(err.message);
         res.status(500).send(err.message)
     }
 })
@@ -196,18 +196,18 @@ router.get('/list_stocks_by_product', auth, async (req, res) => {
             total: total,
         });
     } catch (err) {
-        console.log(err.message);
+        //console.log(err.message);
         res.status(500).send(err.message);
     }
 });
 router.get('/list', auth, async (req, res) => {
 
     try {
-        console.log(req.query)
+        //console.log(req.query)
         res.json({msg:'hello world'})
 
     } catch (err) {
-        console.log(err.message);
+        //console.log(err.message);
         res.status(500).send(err.message)
     }
 })

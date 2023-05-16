@@ -8,9 +8,9 @@ exports.socketConnection = (server) => {
 
     socket.join(socket.request._query.id);
     socket.on('action', (action) => {
-        console.log("socket actions")
+        //console.log("socket actions")
         if(action.type === 'server/hello'){
-          console.log('Got hello data!', action.data);
+          //console.log('Got hello data!', action.data);
           socket.emit('action', {type:'message', data:'good day!'});
         }
       });

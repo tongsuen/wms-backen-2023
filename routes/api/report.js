@@ -25,7 +25,7 @@ router.post('/will_exp_stock',auth,async (req,res)=> {
     try {
       const today = new Date();
       const thirtyDaysLater = new Date(today.getFullYear(), today.getMonth(), today.getDate() + range);
-      console.log(thirtyDaysLater)
+      //console.log(thirtyDaysLater)
 
 
       const expiringInventory = await Inventory.find({ exp_date: { $gte: today, $lte: thirtyDaysLater } });
@@ -127,7 +127,7 @@ router.post('/stock_with_notes',auth,async (req,res)=> {
 })
 router.post('/report_history',auth,async (req,res)=> {
     const { range, userId,searchText } = req.body;
-    console.log(req.body)
+    //console.log(req.body)
     let dateFilter = null;
     switch (range) {
       case 'last3':
@@ -160,8 +160,8 @@ router.post('/report_history',auth,async (req,res)=> {
             
           } 
     }
-    console.log("==>")
-    console.log(matchQuery)
+    //console.log("==>")
+    //console.log(matchQuery)
     if(searchText){
         matchQuery = {...matchQuery, $or: [
             { lot_number: { $regex: searchText, $options: 'i' } },
@@ -208,7 +208,7 @@ router.post('/report_history',auth,async (req,res)=> {
 })
 router.post('/report_import', auth, async (req, res) => {
   const { range, userId,searchText,type = 1 } = req.body;
-  console.log(req.body)
+  //console.log(req.body)
   let dateFilter = null;
   switch (range) {
     case 'last3':
@@ -242,7 +242,7 @@ router.post('/report_import', auth, async (req, res) => {
         } 
   }
 
-  console.log(matchQuery)
+  //console.log(matchQuery)
   if(searchText){
       matchQuery = {...matchQuery, $or: [
           { lot_number: { $regex: searchText, $options: 'i' } },
@@ -299,13 +299,13 @@ router.post('/report_import', auth, async (req, res) => {
     { $sort: { month: 1 } }
   ]);
 
-  console.log(result);
+  //console.log(result);
   return res.json(result);
 });
 
 router.post('/report_export', auth, async (req, res) => {
     const { range, userId,searchText } = req.body;
-    console.log(req.body)
+    //console.log(req.body)
     let dateFilter = null;
     switch (range) {
       case 'last3':
@@ -339,7 +339,7 @@ router.post('/report_export', auth, async (req, res) => {
           } 
     }
 
-    console.log(matchQuery)
+    //console.log(matchQuery)
     if(searchText){
         matchQuery = {...matchQuery, $or: [
             { lot_number: { $regex: searchText, $options: 'i' } },
@@ -396,13 +396,13 @@ router.post('/report_export', auth, async (req, res) => {
       { $sort: { month: 1 } }
     ]);
   
-    console.log(result);
+    //console.log(result);
     return res.json(result);
 });
 
 router.post('/report_export_import', auth, async (req, res) => {
   const { range, userId,searchText,type = 2 } = req.body;
-  console.log(req.body)
+  //console.log(req.body)
   let dateFilter = null;
   switch (range) {
     case 'last3':
@@ -436,7 +436,7 @@ router.post('/report_export_import', auth, async (req, res) => {
         } 
   }
 
-  console.log(matchQuery)
+  //console.log(matchQuery)
   if(searchText){
       matchQuery = {...matchQuery, $or: [
           { lot_number: { $regex: searchText, $options: 'i' } },
@@ -493,7 +493,7 @@ router.post('/report_export_import', auth, async (req, res) => {
     { $sort: { month: 1 } }
   ]);
 
-  console.log(result);
+  //console.log(result);
   return res.json(result);
 });
 router.post('/report_most_import', auth, async (req, res) => {
@@ -562,7 +562,7 @@ router.post('/report_most_export', auth, async (req, res) => {
   const endDate = new Date();
   const startDate = new Date(endDate.getTime() - (range * 24 * 60 * 60 * 1000));
 
-  console.log(startDate)
+  //console.log(startDate)
   let matchQuery = {
       type: 2 ,
       create_date: { $gte: startDate, $lte: endDate }, // Only consider invoices within the date range
@@ -635,7 +635,6 @@ router.post('/longest_stock', auth, async (req, res) => {
   const {user_id}  = req.body
   let matchQuery = {
     is_active: true ,
-
   }
   try {
     if(user_id) matchQuery.user =  mongoose.Types.ObjectId(user_id)
@@ -669,11 +668,9 @@ router.post('/longest_stock', auth, async (req, res) => {
           name: 1,
           days_in_warehouse: 1,
           create_date:1,
-          zone:'$zone.name',
         }
       }
     ]);
-    console.log(result)
     return res.json(result);
   } catch (error) {
     
@@ -693,7 +690,7 @@ router.post('/report_data', auth,async (req,res)=> {
             if(product_name.length > 0) query.push({name : {$in : product_name}}) 
             if(lot_number.length > 0) query.push({lot_number : {$in : lot_number}}) 
           
-            console.log(query);
+            //console.log(query);
             var final_query = {}
             if(query.length == 0){
                 final_query.create_date = {'$gte':start,'$lte':end};
@@ -767,7 +764,7 @@ router.post('/report_data', auth,async (req,res)=> {
         return res.status(400).send('Data Error')
 
     }catch(err){
-        console.log(err.message);
+        //console.log(err.message);
         res.status(500).send(err.message)
     }
 })
@@ -784,27 +781,27 @@ router.get('/report_diff_history',async (req,res)=> {
     let array_old_added = []
     for (let i = 0; i < docs2.length; i++) {
       const stk = docs2[i];
-       console.log(stk.stock)
+       //console.log(stk.stock)
       for (let j = 0; j < docs1.length; j++) {
         const stk_old = docs1[j];
-        //console.log(j)
+        ////console.log(j)
         if(stk.stock.toString() === stk_old.stock.toString()){
       
           
         }
         else{
 
-          console.log("vv===vv")
-          console.log(stk_old.stock)
+          //console.log("vv===vv")
+          //console.log(stk_old.stock)
           array_added.push(stk)
           break
         }
       }
     }
-    console.log(array_old_added.length)
-    console.log(array_added.length)
-    // console.log('Removed:', removed.length);
-    // console.log('Changed:', changed.length);
+    //console.log(array_old_added.length)
+    //console.log(array_added.length)
+    // //console.log('Removed:', removed.length);
+    // //console.log('Changed:', changed.length);
     return res.status(400).send({
     
       // removed:removed,
@@ -812,7 +809,7 @@ router.get('/report_diff_history',async (req,res)=> {
     })
 
   }catch(err){
-      console.log(err.message);
+      //console.log(err.message);
       res.status(500).send(err.message)
   }
 })
