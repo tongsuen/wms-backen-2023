@@ -1764,7 +1764,7 @@ router.post('/export_out_stocks', [auth, upload_invoices.array('files')], async 
 router.post('/list_customer', auth, async (req, res) => {
     try {
 
-        const list = await User.find({ admin: false ,is_active:true})
+        const list = await User.find({ admin: false})
         //console.log(list);
 
         res.json(list)
@@ -2296,7 +2296,7 @@ router.post('/get_user', auth, async (req, res) => {
     const { } = req.body;
     try {
 
-        const list = await User.find()
+        const list = await User.find({is_active:true})
 
         res.json(list)
 
