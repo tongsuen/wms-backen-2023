@@ -18,19 +18,19 @@ router.post('/create_category', auth,async (req,res)=> {
         res.json(cat)
 
     }catch(err){
-        //console.log(err.message);
+        console.log(err.message);
         res.status(500).send(err.message)
     }
 })
 router.post('/get_user', auth,async (req,res)=> {
-    const {name} = req.body;
+  
     try {
         const user = await User.findById(req.user.id).select('-password');
 
         res.json(user)
 
     }catch(err){
-        //console.log(err.message);
+        console.log(err.message);
         res.status(500).send(err.message)
     }
 })
@@ -42,7 +42,7 @@ router.post('/get_user_by_email', auth,async (req,res)=> {
         res.json(user)
 
     }catch(err){
-        //console.log(err.message);
+        console.log(err.message);
         res.status(500).send(err.message)
     }
 })
@@ -51,7 +51,7 @@ router.post('/update_user', auth,async (req,res)=> {
     ,company,personal_id,website,tel,tel_2,fax,role,is_person,is_active} = req.body;
 
     try {
-        //console.log(req.body);
+        console.log(req.body);
         
         // const user = await User.findOneAndUpdate({_id:req.user.id},{name,last_name,user_name,admin,position,address,province,passcode
         //     ,company,personal_id,website,tel,tel_2,fax,role,is_person,is_active})
@@ -67,7 +67,7 @@ router.post('/update_user', auth,async (req,res)=> {
        
 
     }catch(err){
-        //console.log(err.message);
+        console.log(err.message);
         res.status(500).send(err.message)
     }
 })
@@ -86,7 +86,7 @@ router.post('/update_profile',[auth,upload_avatar.single('avatar')], auth,async 
         // const user = await User.findOneAndUpdate({_id:req.user.id},{name,last_name,user_name,admin,position,address,province,passcode
         //     ,company,personal_id,website,tel,tel_2,fax,role,is_person,is_active})
 
-        //console.log(update_body);
+        console.log(update_body);
         User.findOneAndUpdate({_id: user_id},update_body, {}, function(err, user){  
             if(err){
                return res.status(500);
@@ -97,7 +97,7 @@ router.post('/update_profile',[auth,upload_avatar.single('avatar')], auth,async 
        
 
     }catch(err){
-        //console.log(err.message);
+        console.log(err.message);
         res.status(500).send(err.message)
     }
 })
@@ -105,10 +105,10 @@ router.post('/update_profile',[auth,upload_avatar.single('avatar')], auth,async 
 router.post('/upload_avatar',[auth,upload_avatar.single('avatar')],async (req,res)=> {
     const {user_id} = req.body;
     try {
-        //console.log(req.file)
-        //console.log(req.body)
+        console.log(req.file)
+        console.log(req.body)
         const user = await User.findOne({_id:user_id})
-        //console.log(user);
+        console.log(user);
         
         if(req.file){
             user.avatar = req.file.location;
@@ -116,21 +116,21 @@ router.post('/upload_avatar',[auth,upload_avatar.single('avatar')],async (req,re
         }
         return res.json(user)
     }catch(err){
-        //console.log(err.message);
+        console.log(err.message);
         res.status(500).send(err.message)
     }
 })
 router.post('/save_expo_token', auth,async (req,res)=> {
     try {
         const {expo_token} = req.body;
-        //console.log(req.body)
+        console.log(req.body)
         const user = await User.findById(req.user.id);
         user.expo_token = expo_token
         await user.save()
         res.json(user)
 
     }catch(err){
-        //console.log(err.message);
+        console.log(err.message);
         res.status(500).send(err.message)
     }
 })

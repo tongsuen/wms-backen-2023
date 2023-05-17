@@ -51,7 +51,7 @@ router.post('/list_admin', auth,async (req,res)=> {
         res.json(list)
 
     }catch(err){
-        //console.log(err.message);
+        console.log(err.message);
         res.status(500).send(err.message)
     }
 })
@@ -63,7 +63,7 @@ router.post('/list_user', auth,async (req,res)=> {
         res.json(list)
 
     }catch(err){
-        //console.log(err.message);
+        console.log(err.message);
         res.status(500).send(err.message)
     }
 })
@@ -76,7 +76,7 @@ router.post('/remove_inventory', auth,async (req,res)=> {
         res.json(inv)
 
     }catch(err){
-        //console.log(err.message);
+        console.log(err.message);
         res.status(500).send(err.message)
     }
 })
@@ -105,7 +105,7 @@ router.post('/update_request_invoice', auth,async (req,res)=> {
         res.json(invoice)
 
     }catch(err){
-        //console.log(err.message);
+        console.log(err.message);
         res.status(500).send(err.message)
     }
 })
@@ -126,7 +126,7 @@ router.post('/list_stock_out_pending', auth,async (req,res)=> {
         })
 
     }catch(err){
-        //console.log(err.message);
+        console.log(err.message);
         res.status(500).send(err.message)
     }
 })
@@ -251,7 +251,7 @@ router.post('/accept_invoice', auth,async (req,res)=> {
         res.json(stock_out)
 
     }catch(err){
-        //console.log(err.message);
+        console.log(err.message);
         res.status(500).send(err.message)
     }
 })
@@ -264,7 +264,7 @@ router.post('/update_invoice', auth,async (req,res)=> {
         res.json(doc)
 
     }catch(err){
-        //console.log(err.message);
+        console.log(err.message);
         res.status(500).send(err.message)
     }
 })
@@ -278,7 +278,7 @@ router.post('/stock_active', auth,async (req,res)=> {
         res.json(stock)
 
     }catch(err){
-        //console.log(err.message);
+        console.log(err.message);
         res.status(500).send(err.message)
     }
 })
@@ -303,7 +303,7 @@ router.post('/autocomplete_product',auth_admin,async (req,res)=> {
         
         return res.json(list_inv)
     }catch(err){
-        //console.log(err.message);
+        console.log(err.message);
         res.status(500).send(err.message)
     }
 })

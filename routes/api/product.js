@@ -28,8 +28,8 @@ const Product = require('../../models/Product')
 router.post('/create',[auth,upload_inventories.array('images')],async (req,res)=> {
         const {type} = req.body
     try {
-        //console.log(req.files);//req.file.path
-        //console.log(req.body);
+        console.log(req.files);//req.file.path
+        console.log(req.body);
         const product = new Product(req.body)
         await Promise.all(req.files.map(async (file) => {
             product.images.push(file.location)
@@ -41,7 +41,7 @@ router.post('/create',[auth,upload_inventories.array('images')],async (req,res)=
         return res.status(200).send(product)
         
     }catch(err){
-        //console.log(err.message);
+        console.log(err.message);
         res.status(500).send(err.message)
     }
 })
@@ -64,7 +64,7 @@ router.post('/list_for_select',[auth],async (req,res)=> {
 
         res.json(list)
     }catch(err){
-        //console.log(err.message);
+        console.log(err.message);
         res.status(500).send(err.message)
     }
 })
@@ -72,7 +72,7 @@ router.post('/list',[auth],async (req,res)=> {
 
     const {user,search,page = 1,limit = 10} = req.body;
     try {
-        //console.log(req.body);
+        console.log(req.body);
         
         var query ={
             is_active:true
@@ -85,10 +85,10 @@ router.post('/list',[auth],async (req,res)=> {
                     { 'detail': { $regex: searchRegex } },
             ];
         }
-        //console.log(query)
+        console.log(query)
         const list = await Product.find(query).populate('user','-password').sort( { create_date: -1 } ).skip((page - 1) * limit).limit(limit);
         const total = await Product.countDocuments(query);
-        ////console.log(list);
+        console.log(list);
 
         res.json({
                 page:page,
@@ -98,7 +98,7 @@ router.post('/list',[auth],async (req,res)=> {
        
 
     }catch(err){
-        //console.log(err.message);
+        console.log(err.message);
         res.status(500).send(err.message)
     }
 })
@@ -123,42 +123,42 @@ router.post('/list_stock_by_product',[auth],async (req,res)=> {
        
 
     }catch(err){
-        //console.log(err.message);
+        console.log(err.message);
         res.status(500).send(err.message)
     }
 })
 router.post('/get',auth,async (req,res)=> {
     const {product_id} = req.body
     try {
-        //console.log(req.body);
+        console.log(req.body);
         const product = await Product.findById(product_id)
     
         return res.status(200).send(product)
         
     }catch(err){
-        //console.log(err.message);
+        console.log(err.message);
         res.status(500).send(err.message)
     }
 })
 router.post('/remove',auth,async (req,res)=> {
     const {product_id} = req.body
     try {
-        //console.log(req.body);
+        console.log(req.body);
         const product = await Product.findById(product_id)
         product.is_active = false
         await product.save()
         return res.status(200).send(product)
         
     }catch(err){
-        //console.log(err.message);
+        console.log(err.message);
         res.status(500).send(err.message)
     }
 })
 router.post('/update', [auth,upload_inventories.array('images')],async (req,res)=> {
 
     try {
-        //console.log(req.files);//req.file.path
-        //console.log(req.body);
+        console.log(req.files);//req.file.path
+        console.log(req.body);
         var query = req.body;
     
         let inv = await Product.findById(query._id)
@@ -190,20 +190,18 @@ router.post('/update', [auth,upload_inventories.array('images')],async (req,res)
             }))
             query.images = array;
         }
+
         if(query.images.length > 0){
             query.image = query.images[0]
         }
         if(!query.sub_unit){
             query.sub_unit = null
         }
-        
         Product.findOneAndUpdate({_id: query._id},{$set:query},{new:true, upsert: false},function(err,data){
             if(err){
-                //console.log(err);
                 return res.status(500).json(err);
             } else {
                 if(!req.user.admin){
-                        
                     const alert = new AdminNotification({
                         product: data._id,
                         type: 'update',
@@ -215,12 +213,12 @@ router.post('/update', [auth,upload_inventories.array('images')],async (req,res)
                     const io = req.app.get('socketio');
                     io.to('admin').emit('action', { type: 'new_alert', data: alert });
                     alert.save()
-                }                    
+                }
                 return res.json(data);
             }
         });
     }catch(err){
-        //console.log(err.message);
+        console.log(err.message);
         res.status(500).send(err.message)
     }
 })
