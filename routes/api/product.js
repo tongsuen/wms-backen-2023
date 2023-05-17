@@ -193,7 +193,9 @@ router.post('/update', [auth,upload_inventories.array('images')],async (req,res)
         if(query.images.length > 0){
             query.image = query.images[0]
         }
-
+        if(!query.sub_unit){
+            query.sub_unit = null
+        }
         
         Product.findOneAndUpdate({_id: query._id},{$set:query},{new:true, upsert: false},function(err,data){
             if(err){

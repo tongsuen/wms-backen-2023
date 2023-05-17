@@ -557,6 +557,22 @@ router.post('/create_file', [auth,upload_files.array('files')], async (req, res)
         res.status(500).send('Server error');
     }
 });
+router.post('/update_file',auth, async (req, res) => {
+    const { file_id,name } = req.body;
+    
+    try {
+        const file  = await Files.findById(file_id)
+        if(!file)
+            return res.status(500).send('file not found')
+        file.name = name
+        console.log(file)
+        await file.save()
+        res.json(file);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server error');
+    }
+});
 router.post('/delete_file',auth, async (req, res) => {
     const { file_id } = req.body;
   

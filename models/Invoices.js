@@ -213,7 +213,7 @@ const InvoiceSchema = new mongoose.Schema({
     },
     status:{
         type:String,
-        enum: ['pending','accept','decline','request',],
+        enum: ['pending','accept','decline','request','delete'],
         default:'pending'// 1 :in warehouse, 2 :pennding export , 3 :out of stock , -1 : remove by user,resuest is create by user
     },
     remark:{
@@ -246,6 +246,10 @@ const InvoiceSchema = new mongoose.Schema({
     ],
     driver:{
             type:String
+    },
+    is_active:{
+        type:Boolean,
+        default:true
     },
     car_code:{
             type:String

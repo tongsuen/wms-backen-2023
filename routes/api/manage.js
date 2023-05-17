@@ -1117,9 +1117,9 @@ router.post('/import_to_stocks_by_invoice', auth, async (req, res) => {
 
             const amount = info.amount
             const sub_amount = info.sub_amount
-
+        
             const inv = await Inventory.findById(info.inventory).populate('product')
-
+            
             if (inv.current_amount < amount) {
 
                 return res.status(400).json({ message: 'your number are more than exist number of inventory' })
@@ -1192,7 +1192,7 @@ router.post('/import_to_stocks_by_invoice', auth, async (req, res) => {
         res.json(newArray)
 
     } catch (err) {
-        //console.log(err.message);
+        console.log(err.message);
         res.status(500).send(err.message)
     }
 })
@@ -1203,6 +1203,7 @@ router.post('/import_product_from_user', [auth, upload_invoices.array('files')],
         let total_amount = 0
         let total_sub_amount = 0
 
+        const by_user = await User.findById(req.user.id)
         let newArray = []
         for (let i = 0; i < list.length; i++) {
             const stk_info = JSON.parse(list[i]);
@@ -1226,7 +1227,6 @@ router.post('/import_product_from_user', [auth, upload_invoices.array('files')],
             total_sub_amount += sub_amount
         }
 
-        const by_user = await User.findById(req.user.id)
         const stock_out = new Invoice();
         stock_out.type = 1;
 
@@ -1241,10 +1241,8 @@ router.post('/import_product_from_user', [auth, upload_invoices.array('files')],
         stock_out.car_code = car_code
         stock_out.remark = remark
         stock_out.start_date = start_date
-        if(by_user.admin)
-            stock_out.status = 'pending'
-        else
-            stock_out.status = 'request'
+        
+        stock_out.status = 'request'
 
         if (req.files) {
             var array = []
@@ -1777,11 +1775,12 @@ router.post('/list_customer', auth, async (req, res) => {
     }
 })
 router.post('/list_invoice', auth, async (req, res) => {
-    const { user =null, search, status = null, start, end, type = 1, page = 1, limit = 10,sort='create_date' } = req.body;
+    const { user =null, search, status = null, start, end, type = 1, page = 1, limit = 10,sort='create_date',is_active = true } = req.body;
     try {
         //console.log(req.body);
 
         var query = {
+            is_active:is_active
         };
         if (start && end) query.create_date = { $gte: start, $lte: end }
         if (user !== null) query.user = user;
@@ -1822,7 +1821,7 @@ router.post('/list_invoice', auth, async (req, res) => {
                 start_date:1
             }
         }
-        //console.log(query)
+        console.log(query)
         if (parseInt(query.type) === 1) {
             const list = await Invoice.find(query).populate('inventory').populate('import_list.zone').populate('user', '-password').sort(sort_query).skip((page - 1) * limit).limit(limit);
             const total = await Invoice.countDocuments(query);
@@ -1896,7 +1895,7 @@ router.post('/get_invoice', auth, async (req, res) => {
 
         }
         const inv = await Invoice.findOne({ _id: invoice_id }).populate('import_list.inventory').populate('import_stock_list.zone').populate('import_list.product').populate('from').populate('to').populate('import_list.zone').populate('stock').populate('export_list.stock').populate('export_product_list.product').populate('export_list.zone').populate('user', '-password');
-        //console.log(inv);
+        console.log(inv);
 
         return res.json(inv)
 
@@ -2013,7 +2012,23 @@ router.post('/remove_stock', auth, async (req, res) => {
         res.status(500).send(err.message)
     }
 })
+router.post('/delete_invoice', auth, async (req, res) => {
 
+    const { invoice_id, } = req.body;
+    try {
+
+        const invoice = await Invoice.findOne({ _id: invoice_id })
+        invoice.is_active = false;
+        invoice.status = 'delete';//remove by user
+        await invoice.save()
+
+        res.json(invoice)
+
+    } catch (err) {
+        //console.log(err.message);
+        res.status(500).send(err.message)
+    }
+})
 router.post('/get_stocks_history', auth, async (req, res) => {
 
     const { date } = req.body;
