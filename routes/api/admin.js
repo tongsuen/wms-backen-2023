@@ -145,7 +145,10 @@ router.post('/accept_invoice', auth,async (req,res)=> {
                 const stkInfo=  stock_out.export_list[i]
                 //console.log(stkInfo)
                 const stock = await Stocks.findById(stkInfo.stock);
-             
+                console.log(stock.current_sub_amount)
+                if(stock.current_sub_amount === undefined){
+                    stock.current_sub_amount = 0
+                }
                 if(stock.current_amount === stkInfo.amount && stock.current_sub_amount === stkInfo.sub_amount){
                     stock.current_amount = 0
                     stock.current_sub_amount = 0
