@@ -1969,7 +1969,7 @@ router.post('/get_stock', auth, async (req, res) => {
     const { stock_id, search } = req.body;
     try {
 
-        const stk = await Stocks.findOne({ _id: stock_id }).populate('inventory').populate('product').populate('zone').populate('user').populate('notes')
+        const stk = await Stocks.findOne({ _id: stock_id }).populate('inventory').populate('product').populate('zone').populate('user').populate('notes').populate('exportFrom.invoice').populate('moveFrom.zone')
 
         res.json(stk)
 

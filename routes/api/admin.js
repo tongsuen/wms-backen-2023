@@ -145,17 +145,39 @@ router.post('/accept_invoice', auth,async (req,res)=> {
                 const stkInfo=  stock_out.export_list[i]
                 //console.log(stkInfo)
                 const stock = await Stocks.findById(stkInfo.stock);
-                console.log(stock.current_sub_amount)
+              
+                stock.exportFrom = [{
+                    invoice:stock_out,
+                    amount : stkInfo.amount,
+                    sub_amount :(stkInfo.sub_amount ? stkInfo.sub_amount:0),
+             
+                },...stock.exportFrom]
                 if(stock.current_sub_amount === undefined){
                     stock.current_sub_amount = 0
                 }
-                if(stock.current_amount === stkInfo.amount && stock.current_sub_amount === stkInfo.sub_amount){
-                    stock.current_amount = 0
-                    stock.current_sub_amount = 0
-                    stock.prepare_out = 0
-                    stock.prepare_out_sub_amount = 0
-                    stock.status = 'out' // out of stock
-               
+                if(stock.current_amount === stkInfo.amount){
+                    if(stock.sub_unit){
+                        if(stock.current_sub_amount === stkInfo.sub_amount){
+                            stock.current_amount = 0
+                            stock.current_sub_amount = 0
+                            stock.prepare_out = 0
+                            stock.prepare_out_sub_amount = 0
+                            stock.status = 'out' // out of stock
+                        }
+                        else{
+                            stock.current_amount = stock.current_amount - stock.prepare_out
+                            stock.current_sub_amount = stock.current_sub_amount - stock.prepare_out_sub_amount
+                            stock.prepare_out = 0
+                            stock.prepare_out_sub_amount = 0
+                        }
+                    }
+                    else{
+                        stock.current_amount = 0
+                        stock.current_sub_amount = 0
+                        stock.prepare_out = 0
+                        stock.prepare_out_sub_amount = 0
+                        stock.status = 'out' // out of stock
+                    }
                 }
                 else{
                     stock.current_amount = stock.current_amount - stock.prepare_out
@@ -163,6 +185,7 @@ router.post('/accept_invoice', auth,async (req,res)=> {
                     stock.prepare_out = 0
                     stock.prepare_out_sub_amount = 0
                 }
+                console.log(stock)
                 await stock.save()
             }
             stock_out.history = [
@@ -207,7 +230,6 @@ router.post('/accept_invoice', auth,async (req,res)=> {
                     stock.prepare_out = 0
                     stock.prepare_out_sub_amount = 0
 
-                    
                     await stock.save()
                 }
             }

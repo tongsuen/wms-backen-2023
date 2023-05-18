@@ -292,5 +292,5 @@ InvoiceSchema.pre('save', async function (next) {
       next(error);
     }
 });
-InvoiceSchema.index({name:'text',lot_number:'text',product_code:'text'});
+InvoiceSchema.index({name:'text',lot_number:'text',product_code:'text',ref_number:'text'});
 module.exports = Invoice = mongoose.model('invoice',InvoiceSchema)

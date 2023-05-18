@@ -37,6 +37,26 @@ const StocksSchema = new mongoose.Schema({
         },
         amount:{
             type:Number
+        },
+        create_date:{
+            type:Date,
+            default : Date.now
+        }
+    }],
+    exportFrom:[{
+        invoice:{
+            type:mongoose.Schema.Types.ObjectId,
+            ref:'invoice',
+        },
+        sub_amount:{
+            type:Number
+        },
+        amount:{
+            type:Number
+        },
+        create_date:{
+            type:Date,
+            default : Date.now
         }
     }],
     combineFrom:[{
@@ -50,6 +70,10 @@ const StocksSchema = new mongoose.Schema({
         },
         amount:{
             type:Number
+        },
+        create_date:{
+            type:Date,
+            default : Date.now
         }
     }],
 
@@ -69,6 +93,7 @@ const StocksSchema = new mongoose.Schema({
     },
     current_sub_amount:{
         type:Number,
+        default:0
     },
     prepare_out:{
         type:Number,
