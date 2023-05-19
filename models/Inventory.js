@@ -42,6 +42,10 @@ const InventorySchema = new mongoose.Schema({
         type:Number,
         defaul:0
     },
+    current_sub_amount:{ // number of sub unit 
+        type:Number,
+        defaul:0
+    },
     mfg_date : {
         type : Date,
     },

@@ -970,6 +970,7 @@ router.post('/import_to_stocks_approve', auth, async (req, res) => {
             inv.amount = invInfo.amount
             inv.current_amount = invInfo.amount
             inv.total_sub_unit = invInfo.sub_amount
+            inv.current_sub_amount = invInfo.sub_amount
 
             inv.user = invoice.user
             inv.product = invInfo.product
@@ -1045,9 +1046,12 @@ router.post('/update_invoice_import_list_pending_status', auth, async (req, res)
 
     try {
         const invoice = await Invoice.findById(invoice_id)
-
+        let amount = 0
+        let sub_amount = 0
         for (let i = 0; i < list.length; i++) {
             const item = list[i];
+            amount += item.amount
+            sub_amount += item.sub_amount
             if (item.inventory) {
                 const inv = await Inventory.findById(item.inventory)
                 inv.lot_number = item.lot_number
@@ -1056,7 +1060,7 @@ router.post('/update_invoice_import_list_pending_status', auth, async (req, res)
                 inv.current_amount = item.amount
                 inv.amount = item.amount
 
-                inv.total_sub_amount = item.sub_amount
+                inv.current_sub_amount = item.sub_amount
                 await inv.save()
                 console.log(inv)
             }
@@ -1065,6 +1069,7 @@ router.post('/update_invoice_import_list_pending_status', auth, async (req, res)
                 inv.amount = item.amount
                 inv.current_amount = item.amount
                 inv.total_sub_unit = item.sub_amount
+                inv.current_sub_amount = item.sub_amount
 
                 inv.user = invoice.user
                 inv.product = item.product
@@ -1091,9 +1096,10 @@ router.post('/update_invoice_import_list_pending_status', auth, async (req, res)
                 console.log(item)
             }
         }
+
         invoice.import_list = list
-
-
+        invoice.amount = amount
+        invoice.sub_amount = sub_amount
         await invoice.save()
 
         res.json(invoice)
@@ -1125,12 +1131,15 @@ router.post('/import_to_stocks_by_invoice', auth, async (req, res) => {
                 return res.status(400).json({ message: 'your number are more than exist number of inventory' })
             }
 
-            if (amount == inv.current_amount) {
+            if (amount == inv.current_amount && sub_amount == inv.current_sub_amount) {
                 inv.current_amount = 0;
+
+                inv.current_sub_amount = 0;
                 inv.is_in_stock = true;
             }
             else {
                 inv.current_amount = inv.current_amount - amount;
+                inv.current_sub_amount = inv.current_sub_amount - sub_amount;
                 inv.is_in_stock = false;
             }
 
@@ -1208,8 +1217,8 @@ router.post('/import_product_from_user', [auth, upload_invoices.array('files')],
         for (let i = 0; i < list.length; i++) {
             const stk_info = JSON.parse(list[i]);
 
-            const amount = stk_info.amount
-            const sub_amount = stk_info.sub_amount? stk_info.sub_amount:0
+            const amount = parseInt(stk_info.amount)
+            const sub_amount = parseInt(stk_info.sub_amount) ? parseInt(stk_info.sub_amount):0
 
             newArray.push({
                 product: stk_info.product,
@@ -1315,15 +1324,16 @@ router.post('/import_to_stocks', auth, async (req, res) => {
                 return res.status(400).json({ message: 'your number are more than exist number of inventory' })
             }
 
-            if (amount == inv.current_amount) {
+            if (amount == inv.current_amount && sub_amount == inv.current_sub_amount) {
                 inv.current_amount = 0;
-                inv.is_in_stock = true;
 
+                inv.current_sub_amount = 0;
+                inv.is_in_stock = true;
             }
             else {
                 inv.current_amount = inv.current_amount - amount;
+                inv.current_sub_amount = inv.current_sub_amount - sub_amount;
                 inv.is_in_stock = false;
-
             }
 
             total_amount += amount

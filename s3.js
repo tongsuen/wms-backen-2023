@@ -17,6 +17,15 @@ const s3 = new aws.S3({
     secretAccessKey,
     Bucket:bucketName
 })
+// Get the current date
+const currentDate = new Date();
+
+// Format the date as DDMMYYYY
+const formattedDate = currentDate.toLocaleDateString('th-TH', {
+  day: '2-digit',
+  month: '2-digit',
+  year: 'numeric'
+}).replace(/\//g, '');
 
 const fileFilter = (req, file, cb) => {
     if (file.mimetype === 'image/jpeg' || file.mimetype === 'image/png') {
@@ -35,7 +44,7 @@ const multerS3Config_avatar = multerS3({
     },
     key: function (req, file, cb) {
         //console.log(file)
-        cb(null, 'avatar/' + new Date().toISOString() + '-' +Math.random().toString(36).slice(-8)+ file.originalname)
+        cb(null, 'avatar/' +formattedDate+'/' + new Date().toISOString() + '-' +Math.random().toString(36).slice(-8)+ file.originalname)
     }
 });
 const upload_avatar = multer({
@@ -55,7 +64,7 @@ const multerS3Config_inboxs = multerS3({
     },
     key: function (req, file, cb) {
         //console.log(file)
-        cb(null, 'inboxs/' + new Date().toISOString() + '-' +Math.random().toString(36).slice(-8)+ file.originalname)
+        cb(null, 'inboxs/' +formattedDate+'/'  + new Date().toISOString() + '-' +Math.random().toString(36).slice(-8)+ file.originalname)
     }
 });
 const upload_inbox = multer({
@@ -74,7 +83,7 @@ const multerS3Config_inventories = multerS3({
     },
     key: function (req, file, cb) {
         //console.log(file)
-        cb(null, 'inventories/' + new Date().toISOString() + '-'+Math.random().toString(36).slice(-8) + file.originalname)
+        cb(null, 'inventories/'  +formattedDate+'/' + new Date().toISOString() + '-'+Math.random().toString(36).slice(-8) + file.originalname)
     }
 });
 const upload_inventories = multer({
@@ -93,7 +102,7 @@ const multerS3Config_invoices = multerS3({
     },
     key: function (req, file, cb) {
         //console.log(file)
-        cb(null, 'invoices/' + new Date().toISOString() + '-'+Math.random().toString(36).slice(-8) + file.originalname)
+        cb(null, 'invoices/'  +formattedDate+'/' + new Date().toISOString() + '-'+Math.random().toString(36).slice(-8) + file.originalname)
     }
 });
 const upload_invoices = multer({
@@ -112,7 +121,7 @@ const multerS3Config_notes = multerS3({
     },
     key: function (req, file, cb) {
         //console.log(file)
-        cb(null, 'notes/' + new Date().toISOString() + '-'+Math.random().toString(36).slice(-8) + file.originalname)
+        cb(null, 'notes/'  +formattedDate+'/' + new Date().toISOString() + '-'+Math.random().toString(36).slice(-8) + file.originalname)
     }
 });
 const upload_notes = multer({
@@ -131,7 +140,7 @@ const multerS3Config_files = multerS3({
     },
     key: function (req, file, cb) {
         //console.log(file)
-        cb(null, 'files/' + new Date().toISOString() + '-'+Math.random().toString(36).slice(-8) + file.originalname)
+        cb(null, 'files/'  +formattedDate+'/' + new Date().toISOString() + '-'+Math.random().toString(36).slice(-8) + file.originalname)
     }
 });
 const upload_files = multer({

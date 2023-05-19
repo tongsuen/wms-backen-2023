@@ -9,6 +9,7 @@ const auth_admin =require('../../middleware/auth_admin')
 const moment =  require('moment')
 
 const {sendMessage} = require('../../push_noti')
+const { upload_inboxs, upload_invoices, upload_notes, upload_inventories, delete_obj } = require('../../s3')
 
 const {upload_files} = require('../../s3')
 const User = require('../../models/User')
@@ -280,10 +281,41 @@ router.post('/accept_invoice', auth,async (req,res)=> {
         res.status(500).send(err.message)
     }
 })
-router.post('/update_invoice', auth,async (req,res)=> {
+router.post('/update_invoice', [auth,upload_invoices.array('files')],async (req,res)=> {
     try {
-    
-        let doc = await Invoice.findOneAndUpdate({_id:req.body._id}, req.body);
+        console.log(req.body)
+        var query = req.body;
+
+        let inv = await Invoice.findById(query._id)
+        if(!inv)
+            return res
+            .status(400)
+            .json({ message: 'Cannot find invoice' });
+        if (query.old_files) {
+            let difference = inv.files.filter(x => !query.old_files.includes(x))
+            for (let i = 0; i < difference.length; i++) {
+                const old = difference[i];
+                delete_obj(old)
+            }
+            inv.files = query.old_files
+            inv = await inv.save()
+        }
+        else {
+            for (let i = 0; i < inv.files.length; i++) {
+                const old = inv.files[i];
+                delete_obj(old)
+            }
+            inv.files = []
+            inv = await inv.save()
+        }
+        if (req.files) {
+            var array = inv.files
+            await Promise.all(req.files.map(async (file) => {
+                array.push(file.location)
+            }))
+            query.files = array;
+        }
+        let doc = await Invoice.findOneAndUpdate({_id:req.body._id}, query);
 
         await doc.save()
         res.json(doc)
@@ -293,6 +325,7 @@ router.post('/update_invoice', auth,async (req,res)=> {
         res.status(500).send(err.message)
     }
 })
+
 router.post('/stock_active', auth,async (req,res)=> {
     const { stock_id, is_active =false } = req.body;
     try {
@@ -505,7 +538,9 @@ router.post('/combine_stock', auth, async (req, res) => {
         } else {
             throw new Error('Invalid amount');
         }
-
+        // stockInfo.combineFrom = [
+        //     {stock:,old_amount:,amount:}
+        // ]
         await stockInfo.save();
       }
       
