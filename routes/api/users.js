@@ -64,8 +64,6 @@ router.post('/update_user', auth,async (req,res)=> {
                 res.json(user)
             }
            });
-       
-
     }catch(err){
         console.log(err.message);
         res.status(500).send(err.message)

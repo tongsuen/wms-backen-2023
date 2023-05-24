@@ -22,6 +22,10 @@ const StocksHistorySchema = new mongoose.Schema({
         type:mongoose.Schema.Types.ObjectId,
         ref:'history',
     },
+    product:{
+        type:mongoose.Schema.Types.ObjectId,
+        ref:'product',
+    },
     day:{
         type:Number
     },

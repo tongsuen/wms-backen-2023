@@ -550,12 +550,24 @@ router.post('/list_inventory', auth, async (req, res) => {
     }
 })
 router.post('/list_stocks', auth, async (req, res) => {
-    const { user = null, search, status, page = 1, limit = 10, is_expire = false } = req.body;
+    const { user = null, search, status, page = 1, limit = 10, is_expire = false, zone=null } = req.body;
     try {
 
         var query = { is_active: true };
         if (user !== null) query.user = user;
-        if (status !== undefined) query.status = status;
+        if (zone !== null) {
+           
+            const zoneList = await Zone.find({main: {$regex : zone}})
+            query.zone = { $in: zoneList.map(item => item._id) }
+        } 
+        if (status !== undefined) {
+            if(status !== 'all'){
+                query.status = status;
+            }
+            else{
+                delete query['is_active']
+            }
+        }
         if (search) {
             const searchRegex = new RegExp(search, 'i');
             query.$or = [
@@ -1266,18 +1278,36 @@ router.post('/import_product_from_user', [auth, upload_invoices.array('files')],
         send_noti(1, [], 'นำสินค้าเข้าคลัง', 'นำสินค้าเข้าคลัง');
 
         if(user){
-            const alert = await Notification({
-                invoice: stock_out,
-                type: 'import',
-                user: user,
-                by_user: by_user,
-                title: 'นำสินค้าเข้าคลัง',
-                detail: 'คำร้องนำสินค้าเข้าคลังถูกสร้าง'
-            })
-            await alert.save()
+         
+            if(by_user.admin){
+                const alert = await Notification({
+                    invoice: stock_out,
+                    type: 'import',
+                    user: user,
+                    by_user: by_user,
+                    title: 'นำสินค้าเข้าคลัง',
+                    detail: 'คำร้องนำสินค้าเข้าคลังถูกสร้าง'
+                })
+                await alert.save()
+        
+                const io = req.app.get('socketio');
+                io.to(user).emit('action', { type: 'new_alert', data: alert });
+            }
+            else{
+                const alert = await AdminNotification({
+                    invoice: stock_out,
+                    type: 'import',
+                    user: user,
+                    by_user: by_user,
+                    title: 'นำสินค้าเข้าคลัง',
+                    detail: by_user?.name + ' คำร้องนำสินค้าเข้าคลัง'
+                })
+                await alert.save()
     
-            const io = req.app.get('socketio');
-            io.to(user).emit('action', { type: 'new_alert', data: alert });
+                const io = req.app.get('socketio');
+                io.to('admin').emit('action', { type: 'new_alert', data: alert });
+    
+            }
     
     
         }
@@ -1589,7 +1619,7 @@ router.post('/export_out_stocks_from_user', [auth, upload_invoices.array('files'
 })
 
 router.post('/export_out_stocks', [auth, upload_invoices.array('files')], async (req, res) => {
-    const { list, from, to, remark, driver = '', car_code = '', user } = req.body;
+    const { list, from, to, remark, driver = '', car_code = '',start_date, user } = req.body;
     console.log(req.body)
     try {
         let total_amount = 0
@@ -1639,6 +1669,7 @@ router.post('/export_out_stocks', [auth, upload_invoices.array('files')], async 
         stock_out.driver = driver
         stock_out.car_code = car_code
         stock_out.remark = remark
+        if(start_date) stock_out.start_date = start_date
         stock_out.status = 'pending'
         if (req.files) {
             var array = []
@@ -1859,6 +1890,32 @@ router.post('/list_invoice', auth, async (req, res) => {
         res.status(500).send(err.message)
     }
 })
+router.post('/list_invoice_schedule', auth, async (req, res) => {
+    const { user =null, month,year } = req.body;
+  
+    try {
+      const query = {
+   
+            start_date: {
+                $gte: moment().startOf('month').month(month - 1).year(year).toDate(),
+                $lte: moment().endOf('month').month(month - 1).year(year).toDate(),
+            },
+      };
+  
+      if (user) {
+            query.user = user;
+      }
+    
+      const list = await Invoice.find(query).populate('user', '-password');
+  
+      console.log(list.length);
+  
+      res.json(list);
+    } catch (err) {
+      console.log(err.message);
+      res.status(500).send(err.message);
+    }
+  });
 router.post('/list_invoice_unlimit', auth, async (req, res) => {
     const { user, page = 1, limit = 10, type } = req.body;
     try {
@@ -2336,10 +2393,13 @@ router.post('/save_stock_to_history', auth, async (req, res) => {
             item.zone = stock.zone;
             item.stock = stock;
             item.current_amount = stock.current_amount;
-
+            
             item.product = stock.product;
-            if (stock.product.sub_unit) item.sub_unit = stock.product.sub_unit
-            if (stock.product.sub_unit && sub_amount) item.current_sub_amount = stock.current_sub_amount
+            if (stock.product.sub_unit) {
+                item.sub_unit = stock.product.sub_unit
+                item.current_sub_amount = stock.current_sub_amount
+            }
+
             item.user = stock.user;
             item.name = stock.name;
             if (stock.product_code) item.product_code = stock.product_code;
@@ -2449,7 +2509,7 @@ router.post('/list_history', auth, async (req, res) => {
             ];
         }
 
-        const list = await StocksHistory.find(query)
+        const list = await StocksHistory.find(query).populate('product')
             .populate({
                 path: 'inventory',
                 select: 'name quantity',
