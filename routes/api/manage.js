@@ -1,6 +1,7 @@
 const express = require('express')
 const router = express.Router();
 const { ObjectId } = require('mongodb');
+const mongoose = require('mongoose');
 
 const auth = require('../../middleware/auth')
 const moment = require('moment')
@@ -226,7 +227,7 @@ router.post('/add_note_to_stock', [auth, upload_notes.array('images')], async (r
         }))
         console.log(note)
         note.stock = stock_id
-        await note.save()
+      
         const stock = await Stocks.findOne({ _id: stock_id })
         console.log(stock)
         if (stock.notes) {
@@ -235,8 +236,8 @@ router.post('/add_note_to_stock', [auth, upload_notes.array('images')], async (r
         else {
             stock.notes.push(note)
         }
-
-
+        note.user = stock.user
+        await note.save()
         await stock.save()
         return res.json(note)
 
@@ -2422,10 +2423,11 @@ router.post('/save_stock_to_history', auth, async (req, res) => {
     }
 })
 router.post('/list_notes', auth, async (req, res) => {
-    const { date, start_date, end_date, search, page = 1, limit = 10 } = req.body;
+    const { date, start_date, end_date, search, page = 1, limit = 10, user } = req.body;
     try {
         let query = {};
 
+        // Handle date filtering
         if (date !== undefined) {
             const current_day = moment(date, 'YYYY-M-D');
             query = {
@@ -2445,11 +2447,18 @@ router.post('/list_notes', auth, async (req, res) => {
             }
         }
 
+        // Handle user filtering
+        if (user) {
+            query.user = ObjectId(user);
+        }
+
+        // Handle search filtering
         if (search) {
             const searchRegex = new RegExp(search, 'i');
             query.detail = { $regex: searchRegex };
         }
 
+        // Perform the query
         const list = await Note.find(query)
             .sort({ create_date: -1 }) // sort by newest first
             .skip((page - 1) * limit)

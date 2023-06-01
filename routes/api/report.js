@@ -203,7 +203,7 @@ router.post('/report_history',auth,async (req,res)=> {
     ];
 
     const stats = await StocksHistory.aggregate(pipeline);
-    
+    console.log(stats)
     return res.json(stats)
 })
 router.post('/report_import', auth, async (req, res) => {

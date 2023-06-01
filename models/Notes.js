@@ -6,6 +6,10 @@ const NoteSchema = new mongoose.Schema({
         type:mongoose.Schema.Types.ObjectId,
         ref:'stocks',
     },
+    user:{
+        type:mongoose.Schema.Types.ObjectId,
+        ref:'user',
+    },
     detail:{
         type:String,
     },
