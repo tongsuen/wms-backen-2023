@@ -522,10 +522,10 @@ router.post('/get_inventory', auth, async (req, res) => {
     }
 })
 router.post('/list_inventory', auth, async (req, res) => {
-    const { user, search, is_in_stock, page = 1, limit = 10, is_active = true } = req.body;
+    const { user = null, search, is_in_stock, page = 1, limit = 10, is_active = true } = req.body;
     try {
         var query = { };
-        if (user !== undefined) query.user = user;
+        if (user) query.user = user;
         if (is_in_stock !== undefined) query.is_in_stock = is_in_stock;
         if (search) {
             const searchRegex = new RegExp(search, 'i');

@@ -51,6 +51,7 @@ router.post('/list_for_select',[auth],async (req,res)=> {
     try {
      
         var query ={
+            is_active:true
         };
         if(user_id!== undefined) query.user = user_id;
         if (search) {
@@ -70,14 +71,14 @@ router.post('/list_for_select',[auth],async (req,res)=> {
 })
 router.post('/list',[auth],async (req,res)=> {
 
-    const {user,search,page = 1,limit = 10} = req.body;
+    const {user= null,search,page = 1,limit = 10} = req.body;
     try {
         console.log(req.body);
         
         var query ={
             is_active:true
         };
-        if(user!== undefined) query.user = user;
+        if(user) query.user = user;
         if (search) {
             const searchRegex = new RegExp(search, 'i');
             query.$or = [
