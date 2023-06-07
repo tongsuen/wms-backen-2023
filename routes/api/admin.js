@@ -145,7 +145,7 @@ router.post('/accept_invoice', auth,async (req,res)=> {
             for (let i = 0; i < stock_out.export_list.length; i++) {
                 const stkInfo=  stock_out.export_list[i]
                 //console.log(stkInfo)
-                const stock = await Stocks.findById(stkInfo.stock);
+                const stock = await Stocks.findById(stkInfo.stock).populate('product');
               
                 stock.exportFrom = [{
                     invoice:stock_out,
@@ -156,8 +156,8 @@ router.post('/accept_invoice', auth,async (req,res)=> {
                 if(stock.current_sub_amount === undefined){
                     stock.current_sub_amount = 0
                 }
-                if(stock.current_amount === stkInfo.amount){
-                    if(stock.sub_unit){
+                if(stock.current_amount === stkInfo.amount){ // นำสินค้าหน่วยหลักออกหมด
+                    if(stock.sub_unit){ // มีหน่วยย่อยใหม
                         if(stock.current_sub_amount === stkInfo.sub_amount){
                             stock.current_amount = 0
                             stock.current_sub_amount = 0
@@ -166,8 +166,9 @@ router.post('/accept_invoice', auth,async (req,res)=> {
                             stock.status = 'out' // out of stock
                         }
                         else{
-                            stock.current_amount = stock.current_amount - stock.prepare_out
                             stock.current_sub_amount = stock.current_sub_amount - stock.prepare_out_sub_amount
+                         
+                            stock.current_amount = 0
                             stock.prepare_out = 0
                             stock.prepare_out_sub_amount = 0
                         }
@@ -181,8 +182,13 @@ router.post('/accept_invoice', auth,async (req,res)=> {
                     }
                 }
                 else{
-                    stock.current_amount = stock.current_amount - stock.prepare_out
                     stock.current_sub_amount = stock.current_sub_amount - stock.prepare_out_sub_amount
+                    if(stock.product.item_per_unit > stock.current_sub_amount){
+                        stock.current_amount = 0
+                    }
+                    else{
+                        stock.current_amount = stock.current_amount - stock.prepare_out
+                    }
                     stock.prepare_out = 0
                     stock.prepare_out_sub_amount = 0
                 }
