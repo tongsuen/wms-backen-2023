@@ -767,5 +767,291 @@ router.get('/create_data', async (req, res) => {
       res.status(500).send('Server error');
     }
 });
+router.post('/list_zones_with_empty_flag', async (req, res) => {
+    try {
+      Zone.aggregate([
+        {
+          $lookup: {
+            from: 'stocks',
+            localField: '_id',
+            foreignField: 'zone',
+            as: 'stocks'
+          }
+        },
+        
+        {
+            $addFields: {
+              empty: {
+                $cond: {
+                  if: {
+                    $and: [
+                  
+                      { $eq: [{ $arrayElemAt: ['$stocks.status', 0] }, 'warehouse'] }
+                    ]
+                  },
+                  then: 1,
+                  else: 0
+                }
+              }
+            }
+          },
+      
+        {
+            $project: {
+              stocks: 0
+            }
+        },
+      
+        {
+            $sort:
+            {
+                main: 1,
+                x: 1,
+                y: 1,
+            }
+        }
+      ])
+      .exec((err, zones) => {
+        if (err) {
+          console.error(err);
+          res.status(500).send('Server error');
+        } else {
+          res.json({ zones });
+        }
+      });
+    } catch (err) {
+      console.error(err.message);
+      res.status(500).send('Server error');
+    }
+});
 
+router.get('/find_far_away_empty_zone', async (req, res) => {
+    try {
+      const doorLocation = { x: 17, y: 15 }; // Coordinates of the door
+    
+      Zone.aggregate([
+        {
+          $lookup: {
+            from: 'stocks',
+            localField: '_id',
+            foreignField: 'zone',
+            as: 'stocks'
+          }
+        },
+        {
+          $match: {
+            stocks: { $size: 0 },
+            $expr: {
+              $gt: [
+                {
+                  $sqrt: {
+                    $add: [
+                        { $pow: [ { $subtract: ["$location_x", doorLocation.x] }, 2 ] },
+                        { $pow: [ { $subtract: ["$location_y", doorLocation.y] }, 2 ] }
+                    ]
+                  }
+                },
+                5 // Distance threshold, adjust as needed
+              ]
+            }
+          }
+        },
+        {
+          $limit: 1 // Limit the result to only one zone
+        }
+      ])
+      .exec((err, zones) => {
+        if (err) {
+          console.error(err);
+          res.status(500).send('Server error');
+        } else {
+          res.json({ zones });
+        }
+      });
+    } catch (err) {
+      console.error(err.message);
+      res.status(500).send('Server error');
+    }
+  });
+router.get('/add_locationxy_tozone', async (req, res) => {
+    try {
+      const zones = await Zone.find({});
+  
+      const updatedZones = zones.map(zone => {
+        // Modify the location_x and location_y values for each zone
+        // Replace the below code with your logic to calculate the new values
+        if(zone.main === 'A'){
+
+            const location_x =zone.x;
+            const location_y = zone.y;
+            return {
+                ...zone.toObject(),
+                location_x,
+                location_y
+              };
+        }
+        else if(zone.main === 'B'){
+            const location_x = 3+zone.x;
+            const location_y = zone.y;
+            return {
+                ...zone.toObject(),
+                location_x,
+                location_y
+              };
+        }
+        else if(zone.main === 'C'){
+            const location_x = 7+zone.x;
+            const location_y = zone.y;
+            return {
+                ...zone.toObject(),
+                location_x,
+                location_y
+              };
+        }
+        else if(zone.main === 'D'){
+            const location_x = 11+zone.x;
+            const location_y = zone.y;
+            return {
+                ...zone.toObject(),
+                location_x,
+                location_y
+              };
+        }
+        else if(zone.main === 'E'){
+            const location_x = 15+zone.x;
+            const location_y = zone.y;
+            return {
+                ...zone.toObject(),
+                location_x,
+                location_y
+              };
+        }
+        else if(zone.main === 'F'){
+            const location_x = 19+zone.x;
+            const location_y = zone.y;
+            return {
+                ...zone.toObject(),
+                location_x,
+                location_y
+              };
+        }
+        else if(zone.main === 'G'){
+            const location_x = 23+zone.x;
+            const location_y = zone.y;
+            return {
+                ...zone.toObject(),
+                location_x,
+                location_y
+              };
+        }
+        else if(zone.main === 'H'){
+            const location_x = 27+zone.x;
+            const location_y = zone.y;
+            return {
+                ...zone.toObject(),
+                location_x,
+                location_y
+              };
+        }
+        else if(zone.main === 'P'){
+
+            const location_x =zone.x;
+            const location_y = 10+ zone.y;
+            return {
+                ...zone.toObject(),
+                location_x,
+                location_y
+              };
+        }
+        else if(zone.main === 'N'){
+            const location_x = 3+zone.x;
+            const location_y = 10+zone.y;
+            return {
+                ...zone.toObject(),
+                location_x,
+                location_y
+              };
+        }
+        else if(zone.main === 'M'){
+            const location_x = 7+zone.x;
+            const location_y =10+ zone.y;
+            return {
+                ...zone.toObject(),
+                location_x,
+                location_y
+              };
+        }
+        else if(zone.main === 'L'){
+            const location_x = 11+zone.x;
+            const location_y = 10+ zone.y;
+            return {
+                ...zone.toObject(),
+                location_x,
+                location_y
+              };
+        }
+        
+        else if(zone.main === 'K'){
+            const location_x = 19+zone.x;
+            const location_y = 10+zone.y;
+            return {
+                ...zone.toObject(),
+                location_x,
+                location_y
+              };
+        }
+        else if(zone.main === 'J'){
+            const location_x = 23+zone.x;
+            const location_y = 10+zone.y;
+            return {
+                ...zone.toObject(),
+                location_x,
+                location_y
+              };
+        }
+        else if(zone.main === 'I'){
+            const location_x = 27+zone.x;
+            const location_y = 10+ zone.y;
+            return {
+                ...zone.toObject(),
+                location_x,
+                location_y
+              };
+        }
+        else{
+            return {
+                ...zone.toObject(),
+                location_x,
+                location_y
+              };
+        }
+        
+      });
+  
+      // Update the zones in the database
+      await Promise.all(updatedZones.map(zone => Zone.findByIdAndUpdate(zone._id, zone)));
+      console.log(updatedZones)
+      res.json({ message: 'Location coordinates added to zones successfully' });
+    } catch (err) {
+      console.error(err.message);
+      res.status(500).send('Server error');
+    }
+  });
+
+  router.get('/find_zones_near_door', async (req, res) => {
+    try {
+        const doorLocation = { x: 17, y: 14 }; // Coordinates of the door
+
+        // Find zones near the door based on location_x and location_y
+        const zones = await Zone.find({
+          location_x: { $gte: doorLocation.x - 1 },
+          location_y: { $gte: doorLocation.y - 1 }
+        });
+  
+      res.json({ zones });
+    } catch (err) {
+      console.error(err.message);
+      res.status(500).send('Server error');
+    }
+  });
 module.exports = router; 

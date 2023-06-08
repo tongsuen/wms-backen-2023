@@ -1126,9 +1126,9 @@ router.post('/update_invoice_import_list_pending_status', auth, async (req, res)
 router.post('/import_to_stocks_by_invoice', auth, async (req, res) => {
     const { list, invoice_id } = req.body;
     try {
-        console.log(req.body)
+     
         const invoice = await Invoice.findById(invoice_id)
-
+    
         let total_amount = 0
         let newArray = []
         for (let i = 0; i < list.length; i++) {
@@ -1139,10 +1139,10 @@ router.post('/import_to_stocks_by_invoice', auth, async (req, res) => {
         
             const inv = await Inventory.findById(info.inventory).populate('product')
             
-            if (inv.current_amount < amount) {
-
-                return res.status(400).json({ message: 'your number are more than exist number of inventory' })
-            }
+            // if (inv.current_amount < amount) {
+            //     console.log('error')
+            //     return res.status(400).json({ message: 'your number are more than exist number of inventory' })
+            // }
 
             if (amount == inv.current_amount && sub_amount == inv.current_sub_amount) {
                 inv.current_amount = 0;
@@ -1157,7 +1157,7 @@ router.post('/import_to_stocks_by_invoice', auth, async (req, res) => {
             }
 
             total_amount += amount
-
+     
             const z = await Zone.findOne({ _id: info.zone })
 
             const stock = new Stocks();
@@ -1218,123 +1218,105 @@ router.post('/import_to_stocks_by_invoice', auth, async (req, res) => {
         res.status(500).send(err.message)
     }
 })
-router.post('/import_product_from_user', [auth, upload_invoices.array('files')], async (req, res) => {
-    const { list = [], from, to, remark, driver = '', car_code = '',user, start_date } = req.body;
+router.post('/import_to_stocks_by_invoice', auth, async (req, res) => {
+    const { list, invoice_id } = req.body;
     try {
-        console.log(req.body)
-        let total_amount = 0
-        let total_sub_amount = 0
-
-        const by_user = await User.findById(req.user.id)
-        let newArray = []
-        for (let i = 0; i < list.length; i++) {
-            const stk_info = JSON.parse(list[i]);
-
-            const amount = parseInt(stk_info.amount)
-            const sub_amount = parseInt(stk_info.sub_amount) ? parseInt(stk_info.sub_amount):0
-
-            newArray.push({
-                product: stk_info.product,
-                name: stk_info.name,
-                lot_number: stk_info.lot_number,
-                product_code: stk_info.product_code,
-                amount: stk_info.amount,
-                sub_amount: stk_info.sub_amount,
-                unit: stk_info.unit,
-                sub_unit: stk_info.sub_unit,
-                number_pallate: stk_info.number_pallate
-
-            })
-            total_amount += amount
-            total_sub_amount += sub_amount
+      const invoice = await Invoice.findById(invoice_id);
+  
+      const modifiedInventoryItems = [];
+      let total_amount = 0;
+      const newArray = [];
+  
+      for (const info of list) {
+        const { amount, sub_amount, inventory, zone } = info;
+  
+        const inv = await Inventory.findById(inventory).populate('product').lean();
+  
+        if (amount === inv.current_amount && sub_amount === inv.current_sub_amount) {
+          inv.current_amount = 0;
+          inv.current_sub_amount = 0;
+          inv.is_in_stock = true;
+        } else {
+          inv.current_amount -= amount;
+          inv.current_sub_amount -= sub_amount;
+          inv.is_in_stock = false;
         }
-
-        const stock_out = new Invoice();
-        stock_out.type = 1;
-
-        stock_out.amount = total_amount;
-        stock_out.sub_amount = total_sub_amount;
-        stock_out.create_by = by_user
-        stock_out.user = user ? user : by_user;
-        stock_out.import_list = newArray
-        if (from) stock_out.from = from
-        if (to) stock_out.to = to
-        stock_out.driver = driver
-        stock_out.car_code = car_code
-        stock_out.remark = remark
-        stock_out.start_date = start_date
-        
-        stock_out.status = 'request'
-
-        if (req.files) {
-            var array = []
-            await Promise.all(req.files.map(async (file) => {
-                array.push(file.location)
-            }))
-            stock_out.files = array;
-        }
-
-        await stock_out.save();
-
-        send_noti(1, [], 'นำสินค้าเข้าคลัง', 'นำสินค้าเข้าคลัง');
-
-        if(user){
-         
-            if(by_user.admin){
-                const alert = await Notification({
-                    invoice: stock_out,
-                    type: 'import',
-                    user: user,
-                    by_user: by_user,
-                    title: 'นำสินค้าเข้าคลัง',
-                    detail: 'คำร้องนำสินค้าเข้าคลังถูกสร้าง'
-                })
-                await alert.save()
-        
-                const io = req.app.get('socketio');
-                io.to(user).emit('action', { type: 'new_alert', data: alert });
-            }
-            else{
-                const alert = await AdminNotification({
-                    invoice: stock_out,
-                    type: 'import',
-                    user: user,
-                    by_user: by_user,
-                    title: 'นำสินค้าเข้าคลัง',
-                    detail: by_user?.name + ' คำร้องนำสินค้าเข้าคลัง'
-                })
-                await alert.save()
-    
-                const io = req.app.get('socketio');
-                io.to('admin').emit('action', { type: 'new_alert', data: alert });
-    
-            }
-    
-    
-        }
-       else{
-            const alert = await AdminNotification({
-                invoice: stock_out,
-                type: 'import',
-                user: by_user,
-                by_user: by_user,
-                title: 'นำสินค้าเข้าคลัง',
-                detail: by_user?.name + ' คำร้องนำสินค้าเข้าคลัง'
-            })
-            await alert.save()
-
-            const io = req.app.get('socketio');
-            io.to('admin').emit('action', { type: 'new_alert', data: alert });
-
-
-       }
-        res.json(stock_out)
-
+  
+        total_amount += amount;
+  
+        const z = await Zone.findOne({ _id: zone }).lean();
+  
+        const stock = new Stocks();
+        stock.zone = z;
+        stock.name = inv.name;
+        stock.product_code = inv.product_code;
+        stock.lot_number = inv.lot_number;
+        stock.unit = inv.unit;
+        stock.inventory = inv;
+        stock.product = inv.product;
+        if (inv.product.sub_unit) stock.sub_unit = inv.product.sub_unit;
+        if (inv.product.sub_unit && sub_amount) stock.current_sub_amount = sub_amount;
+        stock.current_amount = amount;
+        stock.amount = amount;
+        stock.user = invoice.user;
+        stock.status = 'pending';
+  
+        newArray.push({
+          ...info,
+          stock,
+          product: inv.product,
+        });
+  
+        modifiedInventoryItems.push({
+          updateOne: {
+            filter: { _id: inventory },
+            update: inv,
+          },
+        });
+      }
+  
+      await Promise.all([
+        Invoice.updateOne({ _id: invoice_id }, {
+          $push: {
+            history: {
+              $each: [
+                { status: 'accept', user: req.user.id },
+              ],
+              $position: 0,
+            },
+          },
+          $set: {
+            import_stock_list: newArray,
+            status: 'accept',
+          },
+        }),
+        Inventory.bulkWrite(modifiedInventoryItems),
+      ]);
+  
+      const by_user = await User.findById(req.user.id).lean();
+  
+      send_noti(3, [invoice.user], 'นำสินค้าเข้าคลัง', 'สินค้า ถูกนำเข้าคลังสินค้าเรียบร้อยแล้ว');
+  
+      const alert = new Notification({
+        invoice: invoice,
+        user: invoice.user,
+        by_user: by_user,
+        type: 'import',
+        title: 'นำสินค้าเข้าคลัง',
+        detail: 'สินค้าถูกนำเข้าคลังสินค้าเรียบร้อยแล้ว',
+      });
+      await alert.save();
+  
+      const io = req.app.get('socketio');
+      io.to(invoice.user.toString()).emit('action', { type: 'new_alert', data: alert });
+  
+      res.json(newArray);
     } catch (err) {
-        console.log(err.message);
-        res.status(500).send(err.message)
+      console.log(err.message);
+      res.status(500).send(err.message);
     }
-})
+  });
+  
 
 router.post('/import_to_stocks', auth, async (req, res) => {
     const { list, user, remark } = req.body;

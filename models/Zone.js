@@ -3,7 +3,8 @@ const mongoose = require('mongoose');
 const ZoneSchema = new mongoose.Schema({
     name:{
         type:String,
-        required:true
+        required:true,   
+        index: true // Add an index to the name field
     },
     main:{
         type:String,
@@ -17,7 +18,12 @@ const ZoneSchema = new mongoose.Schema({
     y:{
         type:Number,
     },
-
+    location_x:{
+        type:Number,
+    },
+    location_y:{
+        type:Number,
+    },
     descriptions:{
         type:String,
     },
