@@ -521,6 +521,20 @@ router.post('/get_inventory', auth, async (req, res) => {
         res.status(500).send(err.message)
     }
 })
+router.post('/get_invoice_from_inventory', auth, async (req, res) => {
+    const { inv_id } = req.body;
+    try {
+        
+        const inv = await Invoice.findOne({ 'import_stock_list.inventory': inv_id })
+
+        res.json(inv)
+
+    } catch (err) {
+        console.log(err.message);
+        res.status(500).send(err.message)
+    }
+})
+
 router.post('/list_inventory', auth, async (req, res) => {
     const { user = null, search, is_in_stock, page = 1, limit = 10, is_active = true } = req.body;
     try {

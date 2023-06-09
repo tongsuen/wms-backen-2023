@@ -842,7 +842,7 @@ router.post('/list_zones_with_empty_flag', async (req, res) => {
 router.post('/list_stock_from_zone', async (req, res) => {
     try {
         const {zone_id} = req.body
-        const list = await Stocks.find({zone:zone_id,status:'warehouse'})
+        const list = await Stocks.find({zone:zone_id,status:'warehouse'}).populate('product')
         res.json(list)
     } catch (err) {
       console.error(err.message);
