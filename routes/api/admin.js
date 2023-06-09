@@ -768,8 +768,17 @@ router.get('/create_data', async (req, res) => {
     }
 });
 router.post('/list_zones_with_empty_flag', async (req, res) => {
+    const {user} = req.body
+    let query = {is_active:true,status:'warehouse'}
+    if(user){
+        query.user = user
+    }
     try {
+
+     // const stockList = await Stocks.find(query).distinct('zone')
+      
       Zone.aggregate([
+     
         {
           $lookup: {
             from: 'stocks',
@@ -778,15 +787,21 @@ router.post('/list_zones_with_empty_flag', async (req, res) => {
             as: 'stocks'
           }
         },
-        
         {
             $addFields: {
               empty: {
                 $cond: {
                   if: {
-                    $and: [
-                  
-                      { $eq: [{ $arrayElemAt: ['$stocks.status', 0] }, 'warehouse'] }
+                    $gt: [
+                      {
+                        $size: {
+                          $filter: {
+                            input: '$stocks',
+                            cond: { $eq: ['$$this.status', 'warehouse'] }
+                          }
+                        }
+                      },
+                      0
                     ]
                   },
                   then: 1,
@@ -794,8 +809,8 @@ router.post('/list_zones_with_empty_flag', async (req, res) => {
                 }
               }
             }
-          },
-      
+          }
+          ,
         {
             $project: {
               stocks: 0
@@ -824,7 +839,16 @@ router.post('/list_zones_with_empty_flag', async (req, res) => {
       res.status(500).send('Server error');
     }
 });
-
+router.post('/list_stock_from_zone', async (req, res) => {
+    try {
+        const {zone_id} = req.body
+        const list = await Stocks.find({zone:zone_id,status:'warehouse'})
+        res.json(list)
+    } catch (err) {
+      console.error(err.message);
+      res.status(500).send('Server error');
+    }
+  });
 router.get('/find_far_away_empty_zone', async (req, res) => {
     try {
       const doorLocation = { x: 17, y: 15 }; // Coordinates of the door
