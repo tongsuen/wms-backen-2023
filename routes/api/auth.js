@@ -6,6 +6,8 @@ const jwt = require('jsonwebtoken')
 const config = require('config')
 const User = require('../../models/User')
 const auth =require('../../middleware/auth')
+const auth_admin =require('../../middleware/auth_admin')
+
 const {upload_avatar} = require('../../s3')
 
 
@@ -91,6 +93,31 @@ async (req,res)=> {
         res.status(500).send("Server error");
      }
 });
+
+
+router.post('/new_password', auth_admin, async (req, res) => {
+    const {user_id,new_password } = req.body;
+  
+    try {
+      // Step 1: Verify the current password
+      const user = await User.findById(user_id);
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+ 
+      // Step 2: Update the password
+      const saltRounds = 10;
+      const hashedPassword = await bcrypt.hash(new_password, saltRounds);
+      user.password = hashedPassword;
+      await user.save();
+  
+      res.json({ message: 'Password changed successfully' });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: 'Server error' });
+    }
+  });
+
 router.post('/forget_password',
 async (req,res)=> {
  
