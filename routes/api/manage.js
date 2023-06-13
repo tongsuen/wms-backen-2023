@@ -521,6 +521,7 @@ router.post('/get_inventory', auth, async (req, res) => {
         res.status(500).send(err.message)
     }
 })
+
 router.post('/get_invoice_from_inventory', auth, async (req, res) => {
     const { inv_id } = req.body;
     try {
@@ -538,7 +539,7 @@ router.post('/get_invoice_from_inventory', auth, async (req, res) => {
 router.post('/list_inventory', auth, async (req, res) => {
     const { user = null, search, is_in_stock, page = 1, limit = 10, is_active = true } = req.body;
     try {
-        var query = { };
+        var query = { is_active:true};
         if (user) query.user = user;
         if (is_in_stock !== undefined) query.is_in_stock = is_in_stock;
         if (search) {
@@ -1137,96 +1138,58 @@ router.post('/update_invoice_import_list_pending_status', auth, async (req, res)
     }
 })
 
-router.post('/import_to_stocks_by_invoice', auth, async (req, res) => {
-    const { list, invoice_id } = req.body;
+router.post('/import_product_from_user', [auth, upload_invoices.array('files')], async (req, res) => {
+    const { list, remark, driver = '', car_code = '', start_date,user=null } = req.body;
     try {
-     
-        const invoice = await Invoice.findById(invoice_id)
-    
+        console.log(list)
+        const invoice = new Invoice()
+        const newArray = []
         let total_amount = 0
-        let newArray = []
+        let total_sub_amount = 0
         for (let i = 0; i < list.length; i++) {
-            const info = list[i];
-
-            const amount = info.amount
-            const sub_amount = info.sub_amount
-        
-            const inv = await Inventory.findById(info.inventory).populate('product')
-            
-            // if (inv.current_amount < amount) {
-            //     console.log('error')
-            //     return res.status(400).json({ message: 'your number are more than exist number of inventory' })
-            // }
-
-            if (amount == inv.current_amount && sub_amount == inv.current_sub_amount) {
-                inv.current_amount = 0;
-
-                inv.current_sub_amount = 0;
-                inv.is_in_stock = true;
-            }
-            else {
-                inv.current_amount = inv.current_amount - amount;
-                inv.current_sub_amount = inv.current_sub_amount - sub_amount;
-                inv.is_in_stock = false;
-            }
-
-            total_amount += amount
-     
-            const z = await Zone.findOne({ _id: info.zone })
-
-            const stock = new Stocks();
-            stock.zone = z
-            stock.name = inv.name
-            stock.product_code = inv.product_code
-            stock.lot_number = inv.lot_number
-            stock.unit = inv.unit
-            stock.inventory = inv
-            stock.product = inv.product
-            if (inv.product.sub_unit) stock.sub_unit = inv.product.sub_unit
-            if (inv.product.sub_unit && sub_amount) stock.current_sub_amount = sub_amount
-            stock.current_amount = amount
-            stock.amount = amount
-            stock.user = invoice.user
-            stock.status = 'pending'
-            await stock.save()
-            await inv.save()
-
-            newArray.push({
-                ...info,
-                stock: stock,
-                product: inv.product,
-            })
+            const item = JSON.parse( list[i]);
+            newArray.push(item)
+            total_amount += item.amount
+            total_sub_amount += item.sub_amount
         }
+        invoice.import_list = newArray
 
-        invoice.import_stock_list = newArray
-        invoice.history = [
-            {
-                status: 'accept',
-                user: req.user.id,
-            },
-            ...invoice.history,
-
-        ]
-        invoice.status = 'accept'
+        invoice.remark = remark
+        invoice.driver = driver
+        invoice.car_code = car_code
+        invoice.start_date = start_date,
+        invoice.user = user ? user : req.user.id
+        invoice.status = 'request'
+        invoice.amount = total_amount
+        invoice.sub_amount = total_sub_amount
+        invoice.type = 1
+        if (req.files) {
+            var array = []
+            await Promise.all(req.files.map(async (file) => {
+                array.push(file.location)
+            }))
+            invoice.files = array;
+        }
         await invoice.save()
-        const by_user = await User.findById(req.user.id)
-
-        send_noti(3, [invoice.user], 'นำสินค้าเข้าคลัง', 'สินค้า ถูกนำเข้าคลังสินค้าเรียบร้อยเเล้ว');
-
+        const by_user = await User.findById(req.user.id).lean();
+  
+        send_noti(3, [invoice.user], 'นำสินค้าเข้าคลัง', 'เตรียมนำเข้าคลังสินค้า');
+    
         const alert = new Notification({
-            invoice: invoice,
-            user: invoice.user,
-            by_user: by_user,
-            type: 'import',
-            title: 'นำสินค้าเข้าคลัง',
-            detail: 'สินค้า ถูกนำเข้าคลังสินค้าเรียบร้อยเเล้ว'
-        })
-        await alert.save()
-
+          invoice: invoice,
+          user: invoice.user,
+          by_user: by_user,
+          type: 'import',
+          title: 'เตรียมนำเข้าคลังสินค้า',
+          detail: 'ข้อมูลสินค้าถูกนำเข้าคลังสินค้าเรียบร้อยแล้ว',
+        });
+        await alert.save();
+    
         const io = req.app.get('socketio');
         io.to(invoice.user.toString()).emit('action', { type: 'new_alert', data: alert });
-        res.json(newArray)
-
+    
+        console.log(invoice)
+        res.status(200).send(invoice)
     } catch (err) {
         console.log(err.message);
         res.status(500).send(err.message)
@@ -1240,7 +1203,8 @@ router.post('/import_to_stocks_by_invoice', auth, async (req, res) => {
       const modifiedInventoryItems = [];
       let total_amount = 0;
       const newArray = [];
-  
+      const stocksToSave = [];
+
       for (const info of list) {
         const { amount, sub_amount, inventory, zone } = info;
   
@@ -1274,7 +1238,8 @@ router.post('/import_to_stocks_by_invoice', auth, async (req, res) => {
         stock.amount = amount;
         stock.user = invoice.user;
         stock.status = 'pending';
-  
+        stocksToSave.push(stock);
+
         newArray.push({
           ...info,
           stock,
@@ -1288,7 +1253,8 @@ router.post('/import_to_stocks_by_invoice', auth, async (req, res) => {
           },
         });
       }
-  
+    await Stocks.insertMany(stocksToSave);
+
       await Promise.all([
         Invoice.updateOne({ _id: invoice_id }, {
           $push: {
@@ -2032,9 +1998,9 @@ router.post('/get_stock', auth, async (req, res) => {
 
     const { stock_id, search } = req.body;
     try {
-
+        console.log(stock_id)
         const stk = await Stocks.findOne({ _id: stock_id }).populate('inventory').populate('product').populate('zone').populate('user').populate('notes').populate('exportFrom.invoice').populate('moveFrom.zone')
-
+        console.log(stk)
         res.json(stk)
 
     } catch (err) {
