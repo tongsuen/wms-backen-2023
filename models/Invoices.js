@@ -69,6 +69,14 @@ const InvoiceSchema = new mongoose.Schema({
         sub_unit:{
             type:String,
         },
+        origin_amount:{
+            type:Number,
+            default:0
+        },
+        origin_sub_amount:{
+            type:Number,
+            default:0
+        },
         amount:{
             type:Number,
             default:0
@@ -135,7 +143,7 @@ const InvoiceSchema = new mongoose.Schema({
         },
         stock:{
             type:mongoose.Schema.Types.ObjectId,
-            ref:'stock',
+            ref:'stocks',
         },
         product:{
             type:mongoose.Schema.Types.ObjectId,
@@ -153,6 +161,14 @@ const InvoiceSchema = new mongoose.Schema({
         },
         product_code:{
             type:String,
+        },
+        origin_amount:{
+            type:Number,
+            default:0
+        },
+        origin_sub_amount:{
+            type:Number,
+            default:0
         },
         unit:{
             type:String,

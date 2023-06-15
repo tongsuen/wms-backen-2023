@@ -25,9 +25,10 @@ const Sector = require('../../models/Sector')
 const Notification = require('../../models/Notification')
 const AdminNotification = require('../../models/AdminNotification')
 const Location = require('../../models/Location')
+const StocksInOut = require('../../models/StockInOut')
 
 const Product = require('../../models/Product')
-
+const {calculate_amount_by_sub_amount} = require('../../utils/lib')
 
 router.post('/socket_io_to_admin', auth, async (req, res) => {
 
@@ -1204,6 +1205,7 @@ router.post('/import_to_stocks_by_invoice', auth, async (req, res) => {
       let total_amount = 0;
       const newArray = [];
       const stocksToSave = [];
+      const stocksInOutToSave = [];
 
       for (const info of list) {
         const { amount, sub_amount, inventory, zone } = info;
@@ -1232,13 +1234,21 @@ router.post('/import_to_stocks_by_invoice', auth, async (req, res) => {
         stock.unit = inv.unit;
         stock.inventory = inv;
         stock.product = inv.product;
-        if (inv.product.sub_unit) stock.sub_unit = inv.product.sub_unit;
-        if (inv.product.sub_unit && sub_amount) stock.current_sub_amount = sub_amount;
+        if (inv.product.sub_unit) {
+
+            stock.is_sub = true
+            stock.sub_unit = inv.product.sub_unit
+            if (sub_amount > 0) stock.current_sub_amount = sub_amount;
+
+        }
+       
         stock.current_amount = amount;
         stock.amount = amount;
         stock.user = invoice.user;
         stock.status = 'pending';
         stocksToSave.push(stock);
+        
+        
 
         newArray.push({
           ...info,
@@ -1254,8 +1264,8 @@ router.post('/import_to_stocks_by_invoice', auth, async (req, res) => {
         });
       }
     await Stocks.insertMany(stocksToSave);
-
-      await Promise.all([
+    //await StockInOut.insertMany(stocksInOutToSave);
+    await Promise.all([
         Invoice.updateOne({ _id: invoice_id }, {
           $push: {
             history: {
@@ -1341,8 +1351,12 @@ router.post('/import_to_stocks', auth, async (req, res) => {
             stock.unit = inv.unit
             stock.inventory = inv
             stock.product = inv.product
-            if (inv.product.sub_unit) stock.sub_unit = inv.product.sub_unit
-            if (inv.product.sub_unit && sub_amount) stock.current_sub_amount = sub_amount
+            if (inv.product.sub_unit) {
+                stock.sub_unit = inv.product.sub_unit
+                stock.is_sub = true
+                if (sub_amount > 0) stock.current_sub_amount = sub_amount
+            }
+           
             stock.current_amount = amount
             stock.amount = amount
             stock.user = user
@@ -1597,13 +1611,17 @@ router.post('/export_out_stocks', [auth, upload_invoices.array('files')], async 
             const amount = stk_info.amount
             const sub_amount = stk_info.sub_amount
 
-            const stock = await Stocks.findById(stk_info.stock)
+            const stock =  await Stocks.findById(stk_info.stock).populate('product')
             console.log(stk_info.stock)
             total_amount_origin += stock.current_amount
 
-            stock.prepare_out_sub_amount = stock.prepare_out_sub_amount + sub_amount
-            stock.prepare_out = stock.prepare_out + amount
-
+           if(stock.product.sub_unit){
+                stock.prepare_out_sub_amount = stock.prepare_out_sub_amount + sub_amount
+                stock.prepare_out = calculate_amount_by_sub_amount(stock.prepare_out_sub_amount,stock.product.item_per_unit)
+           }
+           else{
+                stock.prepare_out = stock.prepare_out + amount
+           }
             stockObj.push(stock)
             newArray.push(stk_info)
             total_amount += amount

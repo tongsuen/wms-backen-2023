@@ -4,6 +4,7 @@ const config = require('config');
 const db = config.get('mongoURI');
 
 const connectDB = async () => {
+    console.log(db)
     try {
         await mongoose.connect(db, {
             useNewUrlParser:true,
@@ -15,5 +16,5 @@ const connectDB = async () => {
         process.exit(1);
     }
 }
-
+////    "mongoURI":"mongodb+srv://tongsuendev:Kib1BiPmIc4oK3nh@cluster0.knrftv5.mongodb.net/?retryWrites=true&w=majority",
 module.exports = connectDB;

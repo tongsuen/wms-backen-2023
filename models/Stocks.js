@@ -114,6 +114,10 @@ const StocksSchema = new mongoose.Schema({
     file:{
         type:String,
     },
+    is_sub:{
+        type:Boolean,
+        defaul:false
+    },
     is_active:{
         type:Boolean,
         default:true
@@ -126,6 +130,7 @@ const StocksSchema = new mongoose.Schema({
         default : Date.now
     }
 });
+
 StocksSchema.pre('save', async function (next) {
     try {
       if (!this.ref_number) {

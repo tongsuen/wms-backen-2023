@@ -742,6 +742,7 @@ router.post('/report_data', auth,async (req,res)=> {
             if(lot_number.length > 0) query.push({lot_number : {$in : lot_number}}) 
 
             var final_query = {}
+
             if(query.length == 0){
                 final_query.create_date = {'$gte':start,'$lte':end};
                 if(is_customer){
@@ -757,9 +758,8 @@ router.post('/report_data', auth,async (req,res)=> {
             }
 
             var list = await Invoice.find(final_query).populate('inventory').populate('stock')
-           
-            
             return res.json(list)
+            
         }
         return res.status(400).send('Data Error')
 
@@ -813,4 +813,43 @@ router.get('/report_diff_history',async (req,res)=> {
       res.status(500).send(err.message)
   }
 })
+
+router.get('/get_report_from_date', async (req, res) => {
+  const { fromDate, toDate } = req.body; // Assuming you receive the fromDate and toDate from the request body
+
+  try {
+    // Get data from invoices collection within the specified date range
+    const invoices = await Invoice.find()
+      .populate('import_stock_list.stock', 'current_amount')
+      .populate('export_list.stock', 'current_amount');
+
+    // Process the invoices to calculate stock availability and movement
+    const reportData = invoices.map((invoice) => {
+      const incoming = invoice.import_stock_list.reduce(
+        (total, item) => total + item.amount,
+        0
+      );
+      const outgoing = invoice.export_list.reduce(
+        (total, item) => total + item.amount,
+        0
+      );
+
+      const stock = {
+        stock: invoice.stock,
+        avaliable: invoice.stock.current_amount,
+        net_on_hand: invoice.stock.current_amount - outgoing + incoming,
+        incoming,
+        outgoing,
+      };
+
+      return stock;
+    });
+
+    return res.status(200).send(reportData);
+  } catch (err) {
+    console.log(err.message);
+    res.status(500).send(err.message);
+  }
+});
+
 module.exports = router; 

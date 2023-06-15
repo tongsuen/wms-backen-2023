@@ -23,7 +23,7 @@ const Zone = require('../../models/Zone')
 const Combine = require('../../models/Combine') 
 const History = require('../../models/History') 
 const Files = require('../../models/Files') 
-
+const {calculate_amount_by_sub_amount} = require('../../utils/lib')
 const send_noti = async (type = 1,users_id =[],title='',msg='') => {
     if(type == 1){
         //send push to all admin
@@ -48,7 +48,6 @@ router.post('/list_admin', auth,async (req,res)=> {
     try {
     
         const list = await User.find({admin:true})
-   
         res.json(list)
 
     }catch(err){
@@ -147,51 +146,46 @@ router.post('/accept_invoice', auth,async (req,res)=> {
                 //console.log(stkInfo)
                 const stock = await Stocks.findById(stkInfo.stock).populate('product');
               
-                stock.exportFrom = [{
-                    invoice:stock_out,
-                    amount : stkInfo.amount,
-                    sub_amount :(stkInfo.sub_amount ? stkInfo.sub_amount:0),
-             
-                },...stock.exportFrom]
-                if(stock.current_sub_amount === undefined){
-                    stock.current_sub_amount = 0
-                }
-                if(stock.current_amount === stkInfo.amount){ // นำสินค้าหน่วยหลักออกหมด
-                    if(stock.sub_unit){ // มีหน่วยย่อยใหม
-                        if(stock.current_sub_amount === stkInfo.sub_amount){
-                            stock.current_amount = 0
-                            stock.current_sub_amount = 0
-                            stock.prepare_out = 0
-                            stock.prepare_out_sub_amount = 0
-                            stock.status = 'out' // out of stock
-                        }
-                        else{
-                            stock.current_sub_amount = stock.current_sub_amount - stock.prepare_out_sub_amount
-                         
-                            stock.current_amount = 0
-                            stock.prepare_out = 0
-                            stock.prepare_out_sub_amount = 0
-                        }
-                    }
-                    else{
+                if(stock.product.sub_unit){
+
+                    stock.exportFrom = [{
+                        invoice:stock_out,
+                        amount : stkInfo.amount,
+                        sub_amount :stkInfo.sub_amount ,
+                 
+                    },...stock.exportFrom]
+                    stock.current_sub_amount =  stock.current_sub_amount - stkInfo.sub_amount
+                    if(stock.current_sub_amount === 0){
                         stock.current_amount = 0
-                        stock.current_sub_amount = 0
                         stock.prepare_out = 0
                         stock.prepare_out_sub_amount = 0
-                        stock.status = 'out' // out of stock
+                        stock.status = 'out'
+                    }
+                    else{
+                        stock.current_amount = calculate_amount_by_sub_amount(stock.current_sub_amount,stock.product.item_per_unit)
+                        stock.prepare_out_sub_amount = stock.prepare_out_sub_amount - stkInfo.sub_amount
+                        stock.prepare_out = calculate_amount_by_sub_amount(stock.prepare_out_sub_amount,stock.product.item_per_unit)
                     }
                 }
                 else{
-                    stock.current_sub_amount = stock.current_sub_amount - stock.prepare_out_sub_amount
-                    if(stock.product.item_per_unit > stock.current_sub_amount){
+                    stock.exportFrom = [{
+                        invoice:stock_out,
+                        amount : stkInfo.amount,
+                 
+                    },...stock.exportFrom]
+                    stock.current_amount =  stock.current_amount - stkInfo.amount
+                    stock.prepare_out =  stock.prepare_out - stkInfo.amount
+                    
+                    if(stock.current_amount === 0){
                         stock.current_amount = 0
+                        stock.prepare_out = 0
+                        stock.prepare_out_sub_amount = 0
+                        stock.status = 'out'
                     }
-                    else{
-                        stock.current_amount = stock.current_amount - stock.prepare_out
-                    }
-                    stock.prepare_out = 0
-                    stock.prepare_out_sub_amount = 0
+                   
                 }
+                
+
                 console.log(stock)
                 await stock.save()
             }
@@ -221,25 +215,23 @@ router.post('/accept_invoice', auth,async (req,res)=> {
         {
             stock_out.status = 'decline';
        
-            if(stock_out.stock){
-                const stock = await Stocks.findById(stock_out.stock);
-                
-                stock.prepare_out = 0
-                stock.prepare_out_sub_amount = 0
-                await stock.save()
-            }
-            else {
-                for (let i = 0; i < stock_out.export_list.length; i++) {
+           
+            for (let i = 0; i < stock_out.export_list.length; i++) {
                     const stk=  stock_out.export_list[i]
                     //console.log(stk)
-                    const stock = await Stocks.findById(stk.stock);
-                 
-                    stock.prepare_out = 0
-                    stock.prepare_out_sub_amount = 0
+                    const stock = await Stocks.findById(stk.stock).populate('product');
+                    if(stock.product.sub_unit){
+                        stock.prepare_out_sub_amount = stock.prepare_out  - stk.sub_amount
+                        stock.prepare_out = calculate_amount_by_sub_amount(stock.prepare_out_sub_amount,stock.product.item_per_unit)
+                    }
+                    else{
+                        stock.prepare_out =  stock.prepare_out  - stk.amount
+                    }
+                    
 
                     await stock.save()
-                }
             }
+            
 
             stock_out.history = [
                 {
@@ -409,7 +401,7 @@ router.post('/move_stock', auth, async (req, res) => {
   
     try {
       const [stk, z, byUser] = await Promise.all([
-        Stocks.findOne({ _id: stock }),
+        Stocks.findOne({ _id: stock }).populate('product'),
         Zone.findOne({ _id: zone }),
         User.findById(req.user.id),
       ]);
@@ -450,9 +442,10 @@ router.post('/move_stock', auth, async (req, res) => {
             await Promise.all([stk.save(), moveDoc.save()]);
             res.json(stk);
       } else {
-
+            console.log(stk)
             stk.current_amount -= amount;
-            stk.current_sub_amount -= sub_amount;
+            if(stk.product.sub_unit) stk.current_sub_amount -= sub_amount;
+            if(stk.current_amount === 0) stk.current_amount = 1
 
             const newStock = new Stocks()
             const moveFrom = {
@@ -465,8 +458,14 @@ router.post('/move_stock', auth, async (req, res) => {
             newStock.moveFrom = [moveFrom]
             newStock.current_amount = amount
 
-            if(stk.product.sub_unit)  newStock.sub_unit = stk.product.sub_unit
-            if(stk.product.sub_unit)  newStock.current_sub_amount = sub_amount
+            if(stk.product.sub_unit){
+
+                newStock.sub_unit = stk.product.sub_unit
+                newStock.current_sub_amount = sub_amount
+                newStock.is_sub = true
+
+            } 
+            
             newStock.status = 'warehouse'
 
             newStock.name = stk.name
@@ -502,7 +501,8 @@ router.post('/move_stock', auth, async (req, res) => {
                 flow_balance: flowBalance,
                 user: byUser,
             });
-            //console.log(newStock)
+            console.log(newStock)
+            console.log(stk)
             await Promise.all([stk.save(), newStock.save(), moveDoc.save()]);
             res.json(newStock);
       }
@@ -517,33 +517,30 @@ router.post('/combine_stock', auth, async (req, res) => {
     try {
         //console.log(req.body)
       const stockIds = list.map((stk) => stk.stock);
-      const stocksInfo = await Stocks.find({ _id: { $in: stockIds } });
+      const stocksInfo = await Stocks.find({ _id: { $in: stockIds } }).populate('product');
       const totalAmount = list.reduce((total, stk) => total + stk.amount, 0);
       const totalSubAmount = list.reduce((total, stk) => total + stk.sub_amount, 0);
-    
-      let array = []
+
       for (const stockInfo of stocksInfo) {
+ 
         const stk = list.find((s) => s.stock === stockInfo._id.toString());
-        if (stockInfo.current_amount - stk.amount === 0) {
-            stockInfo.current_amount = 0;
-            stockInfo.is_active = false;
-            stockInfo.status = 'combine';
-
-        } else if (stockInfo.current_amount - stk.amount >= 0) {
-            stockInfo.current_amount = stockInfo.current_amount - stk.amount;
-        } else {
-            throw new Error('Invalid amount');
+        if(stockInfo.product.sub_unit){
+           
+            stockInfo.current_sub_amount = stockInfo.current_sub_amount - stk.sub_amount
+            stockInfo.current_amount = calculate_amount_by_sub_amount(stockInfo.current_sub_amount,stockInfo.product.item_per_unit)
+            if (stockInfo.current_sub_amount === 0 ) {
+                stockInfo.current_amount = 0
+                stockInfo.status = 'combine';
+    
+            }
         }
-
-        if (stockInfo.current_sub_amount - stk.sub_amount === 0) {
-            stockInfo.current_sub_amount = 0;
-            stockInfo.is_active = false;
-            stockInfo.status = 'combine';
-        } else if (stockInfo.current_sub_amount - stk.sub_amount >= 0) {
-            stockInfo.current_sub_amount = stockInfo.current_sub_amount - stk.sub_amount;
-        } else {
-            throw new Error('Invalid amount');
+        else{
+            stockInfo.current_amount =stockInfo.current_amount - stk.amount
+            if (stockInfo.current_amount === 0 ) {
+                stockInfo.status = 'combine';
+            }
         }
+        console.log(stockInfo)
         // stockInfo.combineFrom = [
         //     {stock:,old_amount:,amount:}
         // ]
@@ -561,9 +558,11 @@ router.post('/combine_stock', auth, async (req, res) => {
         group_unit: stocksInfo[0].group_unit,
         unit: stocksInfo[0].unit,
         sub_unit: stocksInfo[0].sub_unit,
-        current_amount: totalAmount,
+        is_sub:stocksInfo[0].sub_unit ? true:false,
+        current_amount: stocksInfo[0].product.sub_unit ? calculate_amount_by_sub_amount(totalSubAmount,stocksInfo[0].product.item_per_unit): totalAmount,
         current_sub_amount: totalSubAmount,
       });
+      console.log(combinedStock)
       await combinedStock.save();
       const from = list.map((stk) =>  {
         return {
