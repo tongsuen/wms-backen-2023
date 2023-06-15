@@ -218,7 +218,7 @@ router.post('/accept_invoice', auth,async (req,res)=> {
            
             for (let i = 0; i < stock_out.export_list.length; i++) {
                     const stk=  stock_out.export_list[i]
-                    //console.log(stk)
+
                     const stock = await Stocks.findById(stk.stock).populate('product');
                     if(stock.product.sub_unit){
                         stock.prepare_out_sub_amount = stock.prepare_out  - stk.sub_amount
@@ -227,8 +227,6 @@ router.post('/accept_invoice', auth,async (req,res)=> {
                     else{
                         stock.prepare_out =  stock.prepare_out  - stk.amount
                     }
-                    
-
                     await stock.save()
             }
             
@@ -1072,6 +1070,23 @@ router.get('/add_locationxy_tozone', async (req, res) => {
         });
   
       res.json({ zones });
+    } catch (err) {
+      console.error(err.message);
+      res.status(500).send('Server error');
+    }
+  });
+  router.get('/update_data_stock', async (req, res) => {
+    try {
+        const stockList = await Stocks.find({status:'warehouse'}).populate('product')
+        for (let i = 0; i < stockList.length; i++) {
+            const stk = stockList[i];
+            if(stk.product.sub_unit){
+                stk.current_amount = calculate_amount_by_sub_amount(stk.current_sub_amount,stk.product.item_per_unit)
+                stk.is_sub  = true
+            }
+            await stk.save()
+        }
+      res.json({ stockList });
     } catch (err) {
       console.error(err.message);
       res.status(500).send('Server error');
