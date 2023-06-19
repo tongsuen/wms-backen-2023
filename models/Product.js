@@ -9,8 +9,11 @@ const ProductSchema = new mongoose.Schema({
     name:{
         type:String,
         required:true,
+        unique: true,
     },
-    
+    model:{
+        type:String,
+    },
     detail:{
         type:String,
     },

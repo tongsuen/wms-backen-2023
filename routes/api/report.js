@@ -819,6 +819,7 @@ router.get('/get_report_from_date', async (req, res) => {
 
   try {
     // Get data from invoices collection within the specified date range
+    
     const invoices = await Invoice.find()
       .populate('import_stock_list.stock', 'current_amount')
       .populate('export_list.stock', 'current_amount');

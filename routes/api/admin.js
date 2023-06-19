@@ -147,7 +147,6 @@ router.post('/accept_invoice', auth,async (req,res)=> {
                 const stock = await Stocks.findById(stkInfo.stock).populate('product');
               
                 if(stock.product.sub_unit){
-
                     stock.exportFrom = [{
                         invoice:stock_out,
                         amount : stkInfo.amount,
@@ -186,8 +185,6 @@ router.post('/accept_invoice', auth,async (req,res)=> {
                     }
                    
                 }
-                
-
                 console.log(stock)
                 await stock.save()
             }
@@ -1089,6 +1086,25 @@ router.get('/update_data_stock', async (req, res) => {
                 stk.is_sub  = true
             }
             await stk.save()
+        }
+      res.json({ stockList });
+    } catch (err) {
+      console.error(err.message);
+      res.status(500).send('Server error');
+    }
+  });
+  router.get('/update_data_amount', async (req, res) => {
+    try {
+        const stockList = await Invoice.find()
+        for (let i = 0; i < stockList.length; i++) {
+            const invoice = stockList[i];
+            let total = 0
+            for (let j = 0; j < invoice.import_list.length; j++) {
+              const inv = invoice.import_list[j];
+              total += inv.amount
+            }
+            invoice.amount = total
+            await invoice.save()
         }
       res.json({ stockList });
     } catch (err) {

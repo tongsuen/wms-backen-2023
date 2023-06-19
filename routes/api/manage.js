@@ -1059,8 +1059,18 @@ router.post('/update_invoice_import_list_request_status', auth, async (req, res)
         const invoice = await Invoice.findById(invoice_id)
         invoice.import_list = list
 
-
-        await invoice.save()
+            let total = 0
+            let total_sub = 0
+            for (let j = 0; j < invoice.import_list.length; j++) {
+              const inv = invoice.import_list[j];
+              total += inv.amount
+              total_sub += inv.sub_amount
+            }
+            invoice.amount = total
+            invoice.sub_amount = total_sub
+            await invoice.save()
+        
+  
 
         res.json(invoice)
 
@@ -1150,8 +1160,10 @@ router.post('/import_product_from_user', [auth, upload_invoices.array('files')],
         for (let i = 0; i < list.length; i++) {
             const item = JSON.parse( list[i]);
             newArray.push(item)
-            total_amount += item.amount
-             total_sub_amount += item.sub_amount ? item.sub_amount:0
+            const amount = parseInt(item.amount)
+            const sub_amount = parseInt(item.sub_amount)
+            total_amount += amount
+             total_sub_amount += sub_amount ? sub_amount:0
         }
         invoice.import_list = newArray
 
@@ -1317,8 +1329,8 @@ router.post('/import_to_stocks', auth, async (req, res) => {
         for (let i = 0; i < list.length; i++) {
             const info = list[i];
 
-            const amount = info.amount
-            const sub_amount = info.sub_amount
+            const amount = parseInt(info.amount)
+            const sub_amount = parseInt(info.sub_amount)
 
             const inv = await Inventory.findById(info.inventory).populate('product')
 
