@@ -41,7 +41,6 @@ const StocksHistorySchema = new mongoose.Schema({
     },
     lot_number:{
         type:String,
-        required:true,
     },
     product_code:{
         type:String,

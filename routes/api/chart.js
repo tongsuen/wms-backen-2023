@@ -298,7 +298,7 @@ router.post('/percent_item_in_stock', auth,async (req,res)=> {
             } else {
               const totalAmount = stocks.reduce((sum, stock) => sum + stock.current_amount, 0);
               const groupedStocks = stocks.reduce((result, stock) => {
-                const existingStock = result.find(s => s._id === stock.name);
+                const existingStock = result.find(s => s._id === stock.product.name);
                 if (existingStock) {
                   existingStock.percent += (stock.current_amount / totalAmount) * 100;
                 } else {

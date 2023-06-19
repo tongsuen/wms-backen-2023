@@ -90,7 +90,7 @@ router.post('/update_request_invoice', auth,async (req,res)=> {
             const amount = stk_info.amount
             const sub_amount = stk_info.sub_amount
 
-            const stock = await Stocks.findById(stk_info.stock)
+            const stock = await Stocks.findById(stk_info.stock).populate('product')
            
             stock.prepare_out_sub_amount = stock.prepare_out_sub_amount + sub_amount
             stock.prepare_out = stock.prepare_out + amount
@@ -326,7 +326,7 @@ router.post('/stock_active', auth,async (req,res)=> {
     const { stock_id, is_active =false } = req.body;
     try {
     
-        const stock = await Stocks.findById(stock_id)
+        const stock = await Stocks.findById(stock_id).populate('product')
         stock.is_active = is_active
         await stock.save()
         res.json(stock)
@@ -466,7 +466,7 @@ router.post('/move_stock', auth, async (req, res) => {
             
             newStock.status = 'warehouse'
 
-            newStock.name = stk.name
+            newStock.name = stk.product.name
             newStock.lot_number = stk.lot_number
             newStock.product_code = stk.product_code
 
@@ -721,7 +721,7 @@ router.get('/create_data', async (req, res) => {
                 const randomStocks = await Stocks.aggregate([{ $sample: { size: Math.floor(Math.random() * 5) + 1 } }]);
                 const list = randomStocks.map(stock => ({
                   stock: stock._id,
-                  name: stock.name,
+                  name: stock.product.name,
                   lot_number: stock.lot_number,
                   product_code: stock.product_code,
                   amount: Math.floor(Math.random() * stock.current_amount) + 1
@@ -1059,7 +1059,7 @@ router.get('/add_locationxy_tozone', async (req, res) => {
     }
   });
 
-  router.get('/find_zones_near_door', async (req, res) => {
+router.get('/find_zones_near_door', async (req, res) => {
     try {
         const doorLocation = { x: 17, y: 14 }; // Coordinates of the door
 
@@ -1074,8 +1074,8 @@ router.get('/add_locationxy_tozone', async (req, res) => {
       console.error(err.message);
       res.status(500).send('Server error');
     }
-  });
-  router.get('/update_data_stock', async (req, res) => {
+});
+router.get('/update_data_stock', async (req, res) => {
     try {
         const stockList = await Stocks.find({status:'warehouse'}).populate('product')
         for (let i = 0; i < stockList.length; i++) {

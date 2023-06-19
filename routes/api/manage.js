@@ -229,7 +229,7 @@ router.post('/add_note_to_stock', [auth, upload_notes.array('images')], async (r
         console.log(note)
         note.stock = stock_id
       
-        const stock = await Stocks.findOne({ _id: stock_id })
+        const stock = await Stocks.findOne({ _id: stock_id }).populate('product')
         console.log(stock)
         if (stock.notes) {
             stock.notes.unshift(note)
@@ -923,7 +923,7 @@ router.post('/zone_with_stock', auth, async (req, res) => {
     try {
 
         const zone = await Zone.findOne({ _id: zone_id })
-        const list = await Stocks.find({ zone: zone, is_active: true })
+        const list = await Stocks.find({ zone: zone, is_active: true }).populate('product')
 
         res.json(list)
 
@@ -1151,7 +1151,7 @@ router.post('/import_product_from_user', [auth, upload_invoices.array('files')],
             const item = JSON.parse( list[i]);
             newArray.push(item)
             total_amount += item.amount
-            total_sub_amount += item.sub_amount
+             total_sub_amount += item.sub_amount ? item.sub_amount:0
         }
         invoice.import_list = newArray
 
@@ -2031,7 +2031,7 @@ router.post('/change_zone_stock', auth, async (req, res) => {
     const { stock_id, zone_id } = req.body;
     try {
 
-        const stk = await Stocks.findOne({ _id: stock_id })
+        const stk = await Stocks.findOne({ _id: stock_id }).populate('product')
         stk.zone = zone_id;
         await stk.save()
 
@@ -2047,7 +2047,7 @@ router.post('/remove_stock', auth, async (req, res) => {
     const { stock_id, } = req.body;
     try {
 
-        const stk = await Stocks.findOne({ _id: stock_id })
+        const stk = await Stocks.findOne({ _id: stock_id }).populate('product')
         stk.is_active = false;
         stk.status = 'removed';//remove by user
         await stk.save()
@@ -2365,7 +2365,7 @@ router.post('/save_stock_to_history', auth, async (req, res) => {
         await history.save()
         await StocksHistory.deleteMany({ day: current_day.format('D'), month: current_day.format('M'), year: current_day.format('YYYY') })
 
-        const list = await Stocks.find({ is_active: true, status: 'warehouse' });
+        const list = await Stocks.find({ is_active: true, status: 'warehouse' }).populate('product');
         for (const index in list) {
             const stock = list[index];
 
@@ -2382,7 +2382,8 @@ router.post('/save_stock_to_history', auth, async (req, res) => {
             }
 
             item.user = stock.user;
-            item.name = stock.name;
+            item.name = stock.product.name;
+
             if (stock.product_code) item.product_code = stock.product_code;
             item.lot_number = stock.lot_number;
             item.day = current_day.format('D');
