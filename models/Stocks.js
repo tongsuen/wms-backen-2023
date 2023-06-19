@@ -122,6 +122,12 @@ const StocksSchema = new mongoose.Schema({
         type:Boolean,
         default:true
     },
+    live_date : {//time stock put in location in warehouse
+        type : Date,
+    },
+    out_date : {//time stock out location in warehouse
+        type : Date,
+    },
     update_date : {
         type : Date,
     },

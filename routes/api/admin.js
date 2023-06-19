@@ -160,6 +160,7 @@ router.post('/accept_invoice', auth,async (req,res)=> {
                         stock.prepare_out = 0
                         stock.prepare_out_sub_amount = 0
                         stock.status = 'out'
+                        stock.out_date = new Date()
                     }
                     else{
                         stock.current_amount = calculate_amount_by_sub_amount(stock.current_sub_amount,stock.product.item_per_unit)
@@ -181,6 +182,7 @@ router.post('/accept_invoice', auth,async (req,res)=> {
                         stock.prepare_out = 0
                         stock.prepare_out_sub_amount = 0
                         stock.status = 'out'
+                        stock.out_date = new Date()
                     }
                    
                 }
@@ -704,6 +706,7 @@ router.get('/delete_data', async (req, res) => {
       res.status(500).send('Server error');
     }
 });
+
 router.get('/create_data', async (req, res) => {
     const { stocks, zone, byUser } = req.body;
     const location = ['A Warehouse','B Warehouse','C Warehouse','D Warehouse']
@@ -714,7 +717,6 @@ router.get('/create_data', async (req, res) => {
     const endMonth = 11; // December
 
     try {
-
         for (let year = startYear; year <= endYear; year++) {
             for (let month = startMonth; month <= endMonth; month++) {
 
@@ -729,7 +731,7 @@ router.get('/create_data', async (req, res) => {
                 const count = await User.countDocuments();
                 const rand = Math.floor(Math.random() * count);
                 const user = await User.findOne().skip(rand);
-        
+
                 //console.log(list)
                 const invoice = new Invoice({
                   user: user,
@@ -747,13 +749,15 @@ router.get('/create_data', async (req, res) => {
                   to: location[Math.floor(Math.random()*location.length)+1],
                   tranport: transport[Math.floor(Math.random()*location.length)+1]
                 });
+                
                 const yearStr = year.toString();
                 const monthStr = (month + 1).toString().padStart(2, '0');
                 const invoiceDate = new Date(`${yearStr}-${monthStr}-01`);
                 invoice.create_date = invoiceDate;
 
-                const result = await invoice.save();
+                await invoice.save();
                 //console.log(`Invoice ${result._id} created with list:`, list);
+
             }
         }
        
