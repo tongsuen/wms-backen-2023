@@ -17,6 +17,9 @@ const ProductSchema = new mongoose.Schema({
     detail:{
         type:String,
     },
+    type:{
+        type:String,
+    },
     x:{
         type:Number,
     },

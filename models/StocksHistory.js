@@ -50,6 +50,10 @@ const StocksHistorySchema = new mongoose.Schema({
         type:Number,
         default:0
     },
+    current_sub_amount:{
+        type:Number,
+        default:0
+    },
     is_active:{
         type:Boolean,
         default:true

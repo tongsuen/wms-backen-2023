@@ -122,6 +122,12 @@ const StocksSchema = new mongoose.Schema({
         type:Boolean,
         default:true
     },
+    shared:[
+        {
+            type:mongoose.Schema.Types.ObjectId,
+            ref:'stock',
+        },
+    ],
     live_date : {//time stock put in location in warehouse
         type : Date,
     },

@@ -220,11 +220,11 @@ router.post('/accept_invoice', auth,async (req,res)=> {
 
                     const stock = await Stocks.findById(stk.stock).populate('product');
                     if(stock.product.sub_unit){
-                        stock.prepare_out_sub_amount = stock.prepare_out  - stk.sub_amount
+                        stock.prepare_out_sub_amount =stk.sub_amount - stock.prepare_out   
                         stock.prepare_out = calculate_amount_by_sub_amount(stock.prepare_out_sub_amount,stock.product.item_per_unit)
                     }
                     else{
-                        stock.prepare_out =  stock.prepare_out  - stk.amount
+                        stock.prepare_out =  stk.amount - stock.prepare_out 
                     }
                     await stock.save()
             }

@@ -603,7 +603,7 @@ router.post('/list_stocks', auth, async (req, res) => {
         // if(search) {
         //     query.inventory = {name:{$regex : search}} ;
         // }
-        const list = await Stocks.find(query).populate({ path: 'inventory', populate: { path: 'user', model: 'user' } }).populate('product').populate('zone').skip((page - 1) * limit).limit(limit)
+        const list = await Stocks.find(query).populate({ path: 'inventory', populate: { path: 'user', model: 'user' } }).populate('product').populate('zone').sort({'zone':1}).skip((page - 1) * limit).limit(limit)
             .sort({ create_date: -1 });
         const total = await Stocks.countDocuments(query);
         console.log(list);
@@ -618,6 +618,110 @@ router.post('/list_stocks', auth, async (req, res) => {
         res.status(500).send(err.message)
     }
 })
+router.post('/list_stocks_for_qrcode', auth, async (req, res) => {
+    const { user = null, search, status, page = 1, limit = 10, is_expire = false, zone=null } = req.body;
+    try {
+        var query = { is_active: true };
+        if (user !== null) query.user = user;
+        if (zone !== null) {
+            const zoneList = await Zone.find({ main: { $regex : zone } });
+            query.zone = { $in: zoneList.map(item => item._id) };
+        } 
+        if (status !== undefined) {
+            if(status !== 'all'){
+                query.status = status;
+            } else {
+                delete query['is_active'];
+            }
+        }
+        if (search) {
+            const searchRegex = new RegExp(search, 'i');
+            query.$or = [
+                { lot_number: { $regex: searchRegex } },
+                { name: { $regex: searchRegex } },
+                { product_code: { $regex: searchRegex } },
+            ];
+        }
+        if (is_expire) {
+            const expiringInventory = await Inventory.find({ exp_date: { $lt: new Date() } });
+            query.inventory = { $in: expiringInventory.map(item => item._id) };
+        }
+        
+        // Aggregation pipeline
+        const pipeline = [
+            { $match: query },
+            {
+              $group: {
+                _id: { lot_number: "$lot_number", product: "$product" },
+                count: { $sum: 1 },
+                stocks: { $push: "$$ROOT" }
+              }
+            },
+          
+            {
+              $unwind: "$stocks"
+            },
+            {
+              $lookup: {
+                from: "zones",
+                localField: "stocks.zone",
+                foreignField: "_id",
+                as: "stocks.zone"
+              }
+            },
+            {
+              $unwind: "$stocks.zone"
+            },
+            {
+                $lookup: {
+                  from: "products",
+                  localField: "stocks.product",
+                  foreignField: "_id",
+                  as: "stocks.product"
+                }
+              },
+              {
+                $unwind: "$stocks.product"
+              },
+            {
+              $group: {
+                _id: { lot_number: "$_id.lot_number", product: "$_id.product" },
+                count: { $first: "$count" },
+                stocks: { $push: "$stocks" }
+              }
+            },
+            {
+                $sort: { "stocks.product.create_date": -1 }
+              },
+            {
+              $skip: (page - 1) * limit
+            },
+            {
+              $limit: limit
+            },
+            {
+              $sort: { create_date: -1 }
+            }
+          ];
+          
+
+        const list = await Stocks.aggregate(pipeline).allowDiskUse(true);
+        const total = await Stocks.countDocuments(query);
+        
+        console.log(list);
+        res.json({
+            page: page,
+            list: list,
+            total: total
+        });
+    } catch (err) {
+        console.log(err.message);
+        res.status(500).send(err.message);
+    }
+
+});
+  
+
 router.post('/list_stocks_by_name', auth, async (req, res) => {
     const { user, search, status, page = 1, limit = 10 } = req.body;
     try {
@@ -686,6 +790,105 @@ router.post('/list_stocks_by_name', auth, async (req, res) => {
         res.status(500).send(err.message)
     }
 })
+router.post('/list_stock_for_export', auth, async (req, res) => {
+    const { user = null, search, status, page = 1, limit = 10, is_expire = false, zone = null } = req.body;
+    try {
+        // Initialization
+        var query = { is_active: true };
+
+        // Filtering based on user and zone
+        if (user !== null) query.user = ObjectId(user);
+        if (zone !== null) {
+            const zoneList = await Zone.find({ main: { $regex: zone } });
+            query.zone = { $in: zoneList.map(item => item._id) };
+        }
+
+        // Filtering based on status
+        if (status !== undefined) {
+            if (status !== 'all') {
+                query.status = status;
+            } else {
+                delete query['is_active'];
+            }
+        }
+
+        // Filtering based on search keyword
+        if (search) {
+            const searchRegex = new RegExp(search, 'i');
+            query.$or = [
+                { lot_number: { $regex: searchRegex } },
+                { name: { $regex: searchRegex } },
+                { product_code: { $regex: searchRegex } },
+            ];
+        }
+
+        // Filtering based on expired inventory
+        if (is_expire) {
+            const expiringInventory = await Inventory.find({ exp_date: { $lt: new Date() } });
+            query.inventory = { $in: expiringInventory.map(item => item._id) };
+        }
+
+        console.log(query);
+       
+        // Aggregation pipeline to group by zone
+        const pipeline = [
+            { $match: query },
+            { $sort: { 'zone': 1 } },
+            { $skip: (page - 1) * limit },
+            { $limit: limit },
+            {
+                $lookup: {
+                  from: "products",
+                  localField: "product",
+                  foreignField: "_id",
+                  as: "product"
+                }
+              },
+              {
+                $group: {
+                    _id: "$zone",
+                    stocks: { $push: "$$ROOT" }
+                }
+            },
+       
+            {
+                $lookup: {
+                    from: "zones",
+                    localField: "_id",
+                    foreignField: "_id",
+                    as: "zone"
+                }
+            },
+            { $unwind: "$zone" },
+            {
+                $project: {
+                    _id: 0,
+                    zone: "$zone",
+                    stocks: 1
+                }
+            },
+           
+        ];
+
+        // Fetching the grouped items by zone
+        const list = await Stocks.aggregate(pipeline);
+
+        // Counting the total number of matching documents
+        const total = await Stocks.countDocuments(query);
+
+        console.log(list);
+
+        // Sending the response
+        res.json({
+            page: page,
+            list: list,
+            total: total
+        });
+    } catch (err) {
+        console.log(err.message);
+        res.status(500).send(err.message);
+    }
+});
 
 router.post('/list_stocks_by_product', auth, async (req, res) => {
     const { user, search, status, page = 1, limit = 10 } = req.body;
@@ -773,6 +976,21 @@ router.post('/list_current_stocks', auth, async (req, res) => {
     }
 })
 
+router.post('/list_current_stock_by_array_id', auth, async (req, res) => {
+    try {
+        const {list} = req.body
+        var query = { is_active: true , _id: { $in: list } };
+        
+
+        const listStock = await Stocks.find(query).populate({ path: 'inventory', populate: { path: 'user', model: 'user' } }).populate('product').populate('zone').sort({ create_date: -1 });
+        console.log(listStock)
+        res.json(listStock)
+
+    } catch (err) {
+        console.log(err.message);
+        res.status(500).send(err.message)
+    }
+})
 router.post('/list_zone', auth, async (req, res) => {
     const { main, sort } = req.body;
     try {
@@ -2386,9 +2604,10 @@ router.post('/save_stock_to_history', auth, async (req, res) => {
             item.zone = stock.zone;
             item.stock = stock;
             item.current_amount = stock.current_amount;
-            
+            item.unit = stock.product.unit
             item.product = stock.product;
             if (stock.product.sub_unit) {
+                console.log(stock)
                 item.sub_unit = stock.product.sub_unit
                 item.current_sub_amount = stock.current_sub_amount
             }

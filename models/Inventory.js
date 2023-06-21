@@ -36,7 +36,9 @@ const InventorySchema = new mongoose.Schema({
     product_code:{
         type:String,
     },
-
+    product_code_express:{
+        type:String,
+    },
     total_sub_unit:{ // number of sub unit 
         type:Number,
         defaul:0

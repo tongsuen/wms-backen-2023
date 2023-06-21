@@ -69,6 +69,7 @@ router.post('/latest_export',auth, async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 });
+
 router.post('/exp_stock',auth,async (req,res)=> {
   const expiredInventory = await Inventory.find({ exp_date: { $lte: new Date() } });
   const expiredStocks = await Stocks.find({ inventory: { $in: expiredInventory.map(item => item._id) }, is_active: true }).populate('zone').populate('inventory');
@@ -850,6 +851,38 @@ router.get('/get_report_from_date', async (req, res) => {
   } catch (err) {
     console.log(err.message);
     res.status(500).send(err.message);
+  }
+});
+router.post('/how_many_zone_user_current_use',auth, async (req, res) => {
+  const { user = null } = req.body;
+  try {
+    const count = await Stocks.aggregate([
+      {
+        $match: {
+          user:  mongoose.Types.ObjectId(user),
+          status: 'warehouse'
+        }
+      },
+      {
+        $group: {
+          _id: '$zone',
+          count: { $sum: 1 }
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: 1 }
+        }
+      }
+    ]);
+    console.log(count)
+    // Extract the count of unique zones
+    const zoneCount = count.length > 0 ? count[0].total : 0;
+
+    res.status(200).json({ zoneCount });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 });
 
