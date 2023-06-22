@@ -23,7 +23,9 @@ const Zone = require('../../models/Zone')
 const Combine = require('../../models/Combine') 
 const History = require('../../models/History') 
 const Files = require('../../models/Files') 
+const StockTask = require('../../models/StockTask')
 const {calculate_amount_by_sub_amount} = require('../../utils/lib')
+
 const send_noti = async (type = 1,users_id =[],title='',msg='') => {
     if(type == 1){
         //send push to all admin
@@ -153,6 +155,7 @@ router.post('/accept_invoice', auth,async (req,res)=> {
                         sub_amount :stkInfo.sub_amount ,
                  
                     },...stock.exportFrom]
+
                     stock.current_sub_amount =  stock.current_sub_amount - stkInfo.sub_amount
                     if(stock.current_sub_amount === 0){
                         stock.current_amount = 0
@@ -166,6 +169,14 @@ router.post('/accept_invoice', auth,async (req,res)=> {
                         stock.prepare_out_sub_amount = stock.prepare_out_sub_amount - stkInfo.sub_amount
                         stock.prepare_out = calculate_amount_by_sub_amount(stock.prepare_out_sub_amount,stock.product.item_per_unit)
                     }
+                    const newTask = new StockTask()
+                    newTask.stock = stock
+                    newTask.amount = stkInfo.amount
+                    newTask.sub_amount = stkInfo.sub_amount
+                    newTask.invoice = stock_out
+                    newTask.type = 'out'
+                    newTask.start_date = stock_out.start_date
+                    await newTask.save()
                 }
                 else{
                     stock.exportFrom = [{
@@ -183,9 +194,16 @@ router.post('/accept_invoice', auth,async (req,res)=> {
                         stock.status = 'out'
                         stock.out_date = new Date()
                     }
-                   
+                    const newTask = new StockTask()
+                    newTask.stock = stock
+                    newTask.amount = stkInfo.amount
+                    newTask.invoice = stock_out
+                    newTask.type = 'out'
+                    newTask.start_date = stock_out.start_date
+                    await newTask.save()
                 }
                 console.log(stock)
+               
                 await stock.save()
             }
             stock_out.history = [
@@ -220,7 +238,7 @@ router.post('/accept_invoice', auth,async (req,res)=> {
 
                     const stock = await Stocks.findById(stk.stock).populate('product');
                     if(stock.product.sub_unit){
-                        stock.prepare_out_sub_amount =stk.sub_amount - stock.prepare_out   
+                        stock.prepare_out_sub_amount =stock.prepare_out_sub_amount - stk.sub_amount 
                         stock.prepare_out = calculate_amount_by_sub_amount(stock.prepare_out_sub_amount,stock.product.item_per_unit)
                     }
                     else{
@@ -410,7 +428,7 @@ router.post('/move_stock', auth, async (req, res) => {
       }
       //console.log(stk)
       if (amount === stk.current_amount && sub_amount === stk.current_sub_amount) {
-    
+            
             const moveDoc = new Move({
                 from: {
                 stock: stk,
@@ -436,6 +454,13 @@ router.post('/move_stock', auth, async (req, res) => {
             }
 
             stk.moveFrom =  [moveFrom,...stk.moveFrom]
+            const newTask = new StockTask()
+            newTask.stock = stk
+            newTask.amount = stk.current_amount
+            newTask.sub_amount = stk.current_sub_amount
+            newTask.type = 'move'
+            newTask.move = moveDoc
+            await newTask.save()
             await Promise.all([stk.save(), moveDoc.save()]);
             res.json(stk);
       } else {
@@ -498,6 +523,15 @@ router.post('/move_stock', auth, async (req, res) => {
                 flow_balance: flowBalance,
                 user: byUser,
             });
+
+            const newTask = new StockTask()
+            newTask.stock = stk
+            newTask.amount = amount
+            newTask.sub_amount = sub_amount
+            newTask.type = 'move'
+            newTask.move = moveDoc
+            await newTask.save()
+
             console.log(newStock)
             console.log(stk)
             await Promise.all([stk.save(), newStock.save(), moveDoc.save()]);
@@ -518,6 +552,7 @@ router.post('/combine_stock', auth, async (req, res) => {
       const totalAmount = list.reduce((total, stk) => total + stk.amount, 0);
       const totalSubAmount = list.reduce((total, stk) => total + stk.sub_amount, 0);
 
+      let array_task = []
       for (const stockInfo of stocksInfo) {
  
         const stk = list.find((s) => s.stock === stockInfo._id.toString());
@@ -530,12 +565,23 @@ router.post('/combine_stock', auth, async (req, res) => {
                 stockInfo.status = 'combine';
     
             }
+            const newTask = new StockTask()
+            newTask.stock = stockInfo
+            newTask.amount = stk.amount
+            newTask.amount = stk.sub_amount
+            newTask.type = 'combine'
+            array_task.push(newTask)
         }
         else{
             stockInfo.current_amount =stockInfo.current_amount - stk.amount
             if (stockInfo.current_amount === 0 ) {
                 stockInfo.status = 'combine';
             }
+            const newTask = new StockTask()
+            newTask.stock = stockInfo
+            newTask.amount = stk.amount
+            newTask.type = 'combine'
+            array_task.push(newTask)
         }
         console.log(stockInfo)
         // stockInfo.combineFrom = [
@@ -582,7 +628,10 @@ router.post('/combine_stock', auth, async (req, res) => {
         user: req.user.id,
       });
       await combine.save();
-
+      await Promise.all(array_task.map(async (task) => {
+          task.combine = combine
+          await task.save()
+      }))
       res.json(combinedStock);
     } catch (err) {
       console.error(err.message);
@@ -768,15 +817,21 @@ router.get('/create_data', async (req, res) => {
 router.post('/list_zones_with_empty_flag', async (req, res) => {
     const {user} = req.body
     let query = {is_active:true,status:'warehouse'}
-    if(user){
-        query.user = user
-    }
+    query.main = { $in: ['A','B','C','D','E','F','G','H','I'] };
     try {
 
      // const stockList = await Stocks.find(query).distinct('zone')
       
-      Zone.aggregate([
-     
+      const list = await Zone.aggregate([
+        {
+          $match:{
+            is_active:true,
+            main:{
+              $in: ['A','B','C','D','E','F','G','H','P'] 
+            }
+            
+          }
+        },
         {
           $lookup: {
             from: 'stocks',
@@ -814,28 +869,102 @@ router.post('/list_zones_with_empty_flag', async (req, res) => {
               stocks: 0
             }
         },
-      
         {
             $sort:
             {
                 main: 1,
-                x: 1,
                 y: 1,
+                x: 1,
             }
         }
       ])
-      .exec((err, zones) => {
-        if (err) {
-          console.error(err);
-          res.status(500).send('Server error');
-        } else {
-          res.json({ zones });
+
+      const list2 = await Zone.aggregate([
+        {
+          $match:{
+            is_active:true,
+            main:{
+              $in: ['O','N','M','L','GATE','K','J','I'] 
+            }
+            
+          }
+        },
+        {
+          $lookup: {
+            from: 'stocks',
+            localField: '_id',
+            foreignField: 'zone',
+            as: 'stocks'
+          }
+        },
+        {
+            $addFields: {
+              empty: {
+                $cond: {
+                  if: {
+                    $gt: [
+                      {
+                        $size: {
+                          $filter: {
+                            input: '$stocks',
+                            cond: { $eq: ['$$this.status', 'warehouse'] }
+                          }
+                        }
+                      },
+                      0
+                    ]
+                  },
+                  then: 1,
+                  else: 0
+                }
+              }
+            }
+          }
+          ,
+        {
+            $project: {
+              stocks: 0
+            }
+        },
+        {
+            $sort:
+            {
+                main: 1,
+                y: -1,
+                x: -1,
+            }
         }
-      });
+      ])
+
+      res.json({ zones:[...list,...list2] });
     } catch (err) {
       console.error(err.message);
       res.status(500).send('Server error');
     }
+});
+router.post('/create_zone', async (req, res) => {
+  try {
+ 
+      const zone = new Zone(req.body)
+      zone.name = zone.x + req.body.main + zone.y.toString().padStart(2, '0')
+      await zone.save()
+      res.json({ zone });
+  } catch (err) {
+      console.error(err.message);
+      res.status(500).send('Server error');
+  }
+});
+router.post('/delete_zone', async (req, res) => {
+  try {
+ 
+      const zone = await Zone.findOne({_id:req.body.zone_id})
+      zone.is_active = false
+      await zone.save()
+      res.json({ zone });
+  } catch (err) {
+      console.error(err.message);
+      res.status(500).send('Server error');
+  }
 });
 router.post('/list_stock_from_zone', async (req, res) => {
     try {
@@ -1093,6 +1222,34 @@ router.get('/update_data_stock', async (req, res) => {
       res.status(500).send('Server error');
     }
   });
+  router.get('/update_data_product', async (req, res) => {
+    try {
+        const stockList = await Product.find()
+        for (let i = 0; i < stockList.length; i++) {
+            const stk = stockList[i];
+            stk.detail = ''
+            await stk.save()
+        }
+      res.json({ stockList });
+    } catch (err) {
+      console.error(err.message);
+      res.status(500).send('Server error');
+    }
+  });
+  router.get('/update_zone_name', async (req, res) => {
+    try {
+        const stockList = await Zone.find({main:'P'})
+        for (let i = 0; i < stockList.length; i++) {
+            const stk = stockList[i];
+            stk.name = stk.y+stk.main+stk.x.toString().padStart(2, '0')
+            await stk.save()
+        }
+      res.json({ stockList });
+    } catch (err) {
+      console.error(err.message);
+      res.status(500).send('Server error');
+    }
+  });
   router.get('/update_data_amount', async (req, res) => {
     try {
         const stockList = await Invoice.find()
@@ -1107,6 +1264,22 @@ router.get('/update_data_stock', async (req, res) => {
             await invoice.save()
         }
       res.json({ stockList });
+    } catch (err) {
+      console.error(err.message);
+      res.status(500).send('Server error');
+    }
+  });
+  router.get('/list_task', async (req, res) => {
+    try {
+      //await StockTask.deleteMany({type:'out'})
+       const task = await Stocks.find()
+      for (let i = 0; i < task.length; i++) {
+        const stk = task[i];
+      
+        stk.exportFrom = []
+        await stk.save()
+      }
+      res.json({ task });
     } catch (err) {
       console.error(err.message);
       res.status(500).send('Server error');

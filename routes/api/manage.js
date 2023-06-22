@@ -26,6 +26,7 @@ const Notification = require('../../models/Notification')
 const AdminNotification = require('../../models/AdminNotification')
 const Location = require('../../models/Location')
 const StocksInOut = require('../../models/StockInOut')
+const StockTask = require('../../models/StockTask')
 
 const Product = require('../../models/Product')
 const {calculate_amount_by_sub_amount} = require('../../utils/lib')
@@ -833,7 +834,7 @@ router.post('/list_stock_for_export', auth, async (req, res) => {
         // Aggregation pipeline to group by zone
         const pipeline = [
             { $match: query },
-            { $sort: { 'zone': 1 } },
+            { $sort: { create_date: 1 } },
             { $skip: (page - 1) * limit },
             { $limit: limit },
             {
@@ -1471,7 +1472,8 @@ router.post('/import_to_stocks_by_invoice', auth, async (req, res) => {
             if (sub_amount > 0) stock.current_sub_amount = sub_amount;
 
         }
-       
+        stock.live_date = invoice.start_date
+        
         stock.current_amount = amount;
         stock.amount = amount;
         stock.user = invoice.user;
@@ -2532,28 +2534,28 @@ router.post('/set_read_alert', auth, async (req, res) => {
     }
 })
 
-router.post('/create_zone', auth, async (req, res) => {
+// router.post('/create_zone', auth, async (req, res) => {
 
-    const { zone_id, sector_number = 1, name, x, y } = req.body;
-    try {
-        if (zone_id) {
-            const zone = await Zone.update({ _id: zone_id }, { name, x, y });
-            return zone
-        }
-        var zone = new Zone();
-        zone.name = y + name + ("0" + x).slice(-2);
-        zone.main = name;
-        zone.x = x;
-        zone.y = y;
-        await zone.save();
-        console.log(zone)
-        return res.json(zone)
+//     const { zone_id, sector_number = 1, name, x, y } = req.body;
+//     try {
+//         if (zone_id) {
+//             const zone = await Zone.update({ _id: zone_id }, { name, x, y });
+//             return zone
+//         }
+//         var zone = new Zone();
+//         zone.name = y + name + ("0" + x).slice(-2);
+//         zone.main = name;
+//         zone.x = x;
+//         zone.y = y;
+//         await zone.save();
+//         console.log(zone)
+//         return res.json(zone)
 
-    } catch (err) {
-        console.log(err.message);
-        res.status(500).send(err.message)
-    }
-})
+//     } catch (err) {
+//         console.log(err.message);
+//         res.status(500).send(err.message)
+//     }
+// })
 
 router.post('/get_category', auth, async (req, res) => {
 

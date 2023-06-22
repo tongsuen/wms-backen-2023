@@ -11,6 +11,13 @@ const ProductSchema = new mongoose.Schema({
         required:true,
         unique: true,
     },
+    main_code:{
+        type:String,
+    
+    },
+    sub_code:{
+        type:String,
+    },
     model:{
         type:String,
     },
@@ -22,15 +29,19 @@ const ProductSchema = new mongoose.Schema({
     },
     x:{
         type:Number,
+        defaul:0
     },
     y:{
         type:Number,
+        defaul:0
     },
     z:{
         type:Number,
+        defaul:0
     },
     weight:{
         type:Number,
+        defaul:0
     },
     unit:{
         type:String,
@@ -67,5 +78,5 @@ const ProductSchema = new mongoose.Schema({
         default : Date.now
     }
 });
-ProductSchema.index({name:'text',sub_unit:'text',unit:'text',images:'text'});
+ProductSchema.index({name:'text',sub_unit:'text',main_code:'text',sub_code:'text',unit:'text',images:'text'});
 module.exports = Product = mongoose.model('product',ProductSchema)

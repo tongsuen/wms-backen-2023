@@ -69,40 +69,42 @@ router.post('/list_for_select',[auth],async (req,res)=> {
         res.status(500).send(err.message)
     }
 })
-router.post('/list',[auth],async (req,res)=> {
-
-    const {user= null,search,page = 1,limit = 10} = req.body;
+router.post('/list', [auth], async (req, res) => {
+    const { user = null, search, page = 1, limit = 10 } = req.body;
     try {
-        console.log(req.body);
+      console.log(req.body);
+  
+      const query = {
+        is_active: true
+      };
+      if (user) query.user = user;
+      if (search) {
+        const escapedKeyword = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+        query.$or = [
+          { 'name': { $options: 'i', $regex: escapedKeyword } },
+          { 'detail': { $options: 'i', $regex: escapedKeyword } }
+        ];
+      }
+      console.log(query);
+      
+      const list = await Product.find(query).populate('user', '-password')
+        .sort({ create_date: -1 }).skip((page - 1) * limit).limit(limit);
         
-        var query ={
-            is_active:true
-        };
-        if(user) query.user = user;
-        if (search) {
-            const searchRegex = new RegExp(search, 'i');
-            query.$or = [
-                    { 'name': { $regex: searchRegex } },
-                    { 'detail': { $regex: searchRegex } },
-            ];
-        }
-        console.log(query)
-        const list = await Product.find(query).populate('user','-password').sort( { create_date: -1 } ).skip((page - 1) * limit).limit(limit);
-        const total = await Product.countDocuments(query);
-        console.log(list);
-
-        res.json({
-                page:page,
-                list:list,
-                total:total
-        })
-       
-
-    }catch(err){
-        console.log(err.message);
-        res.status(500).send(err.message)
+      const total = await Product.countDocuments(query);
+      console.log(list);
+  
+      res.json({
+        page: page,
+        list: list,
+        total: total
+      });
+    } catch (err) {
+      console.log(err.message);
+      res.status(500).send(err.message);
     }
-})
+  });
+  
 router.post('/list_stock_by_product',[auth],async (req,res)=> {
 
     const {user,search,page = 1,limit = 10} = req.body;

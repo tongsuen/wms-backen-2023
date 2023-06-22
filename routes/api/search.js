@@ -127,12 +127,15 @@ router.post('/autocomplete_product',auth,async (req,res)=> {
         if(user){
             query.user = user ? user : req.user.id
         }
-        if(keyword){
-            query.name = { 
-                "$regex":keyword,
-                '$options' : 'i' 
-            }
-        }
+        if (keyword) {
+            const escapedKeyword = keyword.toLowerCase();
+            query.name = {
+              $options: 'i',
+              $text: {
+                $search: escapedKeyword
+              }
+            };
+          }
         const list_inv = await Product.find(query)
         
         return res.json(list_inv)
