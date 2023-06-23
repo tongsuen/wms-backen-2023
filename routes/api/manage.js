@@ -1070,8 +1070,8 @@ router.post('/list_zone', auth, async (req, res) => {
 router.post('/list_zone_for_choose', auth, async (req, res) => {
     const { main, sort } = req.body;
     try {
-        console.log("LIST ZONE");
-        let query = {}
+      
+        let query = {is_active:true}
         if (main) query.main = main
 
         const result2 = await Zone.aggregate([
@@ -1095,7 +1095,38 @@ router.post('/list_zone_for_choose', auth, async (req, res) => {
         res.status(500).send(err.message)
     }
 })
+router.post('/list_zone_for_manage', auth, async (req, res) => {
+    const { search } = req.body;
+    try {
+      
+        let query = {}
+        if(search){
+            const searchRegex = new RegExp(search, 'i');
+            query.$or = [
+                { main: { $regex: searchRegex } },
+                { name: { $regex: searchRegex } },
+            ];
+        }
 
+        const result2 = await Zone.aggregate([
+            {
+                $match: query
+            },
+            {
+                $sort:
+                {
+                    is_active:-1
+                }
+            }
+        ])
+
+        res.json(result2)
+
+    } catch (err) {
+        console.log(err.message);
+        res.status(500).send(err.message)
+    }
+})
 router.post('/list_zone_with_sector', auth, async (req, res) => {
     const { } = req.body;
     try {
@@ -1229,6 +1260,7 @@ router.post('/import_to_stocks_approve', auth, async (req, res) => {
             inv.sub_unit = invInfo.sub_unit
             inv.mfg_date = invInfo.mfg_date
             inv.exp_date = invInfo.exp_date
+            inv.invoice = invoice
             await inv.save()
             invoice.import_list[i].inventory = inv
         }
@@ -1309,7 +1341,7 @@ router.post('/update_invoice_import_list_pending_status', auth, async (req, res)
         for (let i = 0; i < list.length; i++) {
             const item = list[i];
             amount += item.amount
-            sub_amount += item.sub_amount
+            sub_amount += item.sub_amount ? item.sub_amount:0
             if (item.inventory) {
                 const inv = await Inventory.findById(item.inventory)
                 inv.lot_number = item.lot_number
@@ -1318,7 +1350,12 @@ router.post('/update_invoice_import_list_pending_status', auth, async (req, res)
                 inv.current_amount = item.amount
                 inv.amount = item.amount
 
-                inv.current_sub_amount = item.sub_amount
+                if(item.sub_amount){
+                    inv.current_sub_amount = item.sub_amount
+                }
+                else{
+                    inv.current_sub_amount = 0
+                }
                 await inv.save()
                 console.log(inv)
             }
@@ -1326,9 +1363,15 @@ router.post('/update_invoice_import_list_pending_status', auth, async (req, res)
                 const inv = new Inventory()
                 inv.amount = item.amount
                 inv.current_amount = item.amount
-                inv.total_sub_unit = item.sub_amount
-                inv.current_sub_amount = item.sub_amount
-
+               
+                if(item.sub_unit){
+                    inv.total_sub_unit = item.sub_amount
+                    inv.current_sub_amount = item.sub_amount
+                } 
+                else {
+                    inv.total_sub_unit = 0
+                    inv.current_sub_amount = 0
+                }
                 inv.user = invoice.user
                 inv.product = item.product
                 inv.name = item.name
@@ -1338,6 +1381,7 @@ router.post('/update_invoice_import_list_pending_status', auth, async (req, res)
                 inv.sub_unit = item.sub_unit
                 inv.mfg_date = item.mfg_date
                 inv.exp_date = item.exp_date
+                inv.invoice = invoice
                 await inv.save()
                 list[i].inventory = inv
             }
@@ -2787,38 +2831,38 @@ router.post('/remove_stocks_history', auth, async (req, res) => {
         res.status(500).send(err.message)
     }
 })
-router.get('/reset_data', async (req, res) => {
-    const { date } = req.body;
-    // var end_date = new Date(start_date)
-    // end_date =  end_date.addDays(1)
-    // console.log(end_date); 
-    try {
+// router.get('/reset_data', async (req, res) => {
+//     const { date } = req.body;
+//     // var end_date = new Date(start_date)
+//     // end_date =  end_date.addDays(1)
+//     // console.log(end_date); 
+//     try {
 
-        const sh = await StocksHistory.deleteMany();
-        const iv = await Inventory.deleteMany();
-        const ct = await Category.deleteMany();
-        const nots = await Note.deleteMany();
+//         const sh = await StocksHistory.deleteMany();
+//         const iv = await Inventory.deleteMany();
+//         const ct = await Category.deleteMany();
+//         const nots = await Note.deleteMany();
 
-        const ibx = await Inbox.deleteMany();
-        const alert = await Alert.deleteMany();
-        const ivo = await Invoice.deleteMany();
-        const stk = await Stocks.deleteMany();
-        const not = await Notification.deleteMany();
-        const adminnot = await AdminNotification.deleteMany()
-        const order = await Order.deleteMany()
-        const prd = await Product.deleteMany()
-        const mv = await Move.deleteMany()
-        const cvb = await Combine.deleteMany()
-        const files = await Files.deleteMany()
+//         const ibx = await Inbox.deleteMany();
+//         const alert = await Alert.deleteMany();
+//         const ivo = await Invoice.deleteMany();
+//         const stk = await Stocks.deleteMany();
+//         const not = await Notification.deleteMany();
+//         const adminnot = await AdminNotification.deleteMany()
+//         const order = await Order.deleteMany()
+//         const prd = await Product.deleteMany()
+//         const mv = await Move.deleteMany()
+//         const cvb = await Combine.deleteMany()
+//         const files = await Files.deleteMany()
 
-        //const z = await Zone.deleteMany();
-        res.json('delete')
+//         //const z = await Zone.deleteMany();
+//         res.json('delete')
 
-    } catch (err) {
-        console.log(err.message);
-        res.status(500).send(err.message)
-    }
-})
+//     } catch (err) {
+//         console.log(err.message);
+//         res.status(500).send(err.message)
+//     }
+// })
 function randomDate(start, end) {
     return ''
 }

@@ -958,7 +958,7 @@ router.post('/delete_zone', async (req, res) => {
   try {
  
       const zone = await Zone.findOne({_id:req.body.zone_id})
-      zone.is_active = false
+      zone.is_active =  !zone.is_active 
       await zone.save()
       res.json({ zone });
   } catch (err) {
@@ -1269,17 +1269,19 @@ router.get('/update_data_stock', async (req, res) => {
       res.status(500).send('Server error');
     }
   });
-  router.get('/list_task', async (req, res) => {
+  router.get('/list_report', async (req, res) => {
     try {
-      //await StockTask.deleteMany({type:'out'})
-       const task = await Stocks.find()
-      for (let i = 0; i < task.length; i++) {
-        const stk = task[i];
-      
-        stk.exportFrom = []
-        await stk.save()
+      const list = await Invoice.find()
+      for (let i = 0; i < list.length; i++) {
+        const invoice = list[i];
+        for (let k = 0; k < invoice.import_list.length; k++) {
+          const item = invoice.import_list[k];
+          const inv = await Inventory.findById(item.inventory)
+          inv.invoice = invoice
+          await inv.save()
+        }
       }
-      res.json({ task });
+      res.json({ list });
     } catch (err) {
       console.error(err.message);
       res.status(500).send('Server error');

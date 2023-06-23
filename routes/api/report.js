@@ -18,6 +18,7 @@ const Invoice = require('../../models/Invoices')
 const Zone = require('../../models/Zone')
 const Inbox = require('../../models/Inbox') 
 const Note = require('../../models/Notes') 
+const StockTask = require('../../models/StockTask') 
 
 router.post('/will_exp_stock',auth,async (req,res)=> {
     const { range = 30,user } = req.body;
@@ -799,8 +800,10 @@ router.get('/report_diff_history',async (req,res)=> {
         }
       }
     }
+
     console.log(array_old_added.length)
     console.log(array_added.length)
+
     // console.log('Removed:', removed.length);
     // console.log('Changed:', changed.length);
     return res.status(400).send({
@@ -853,6 +856,7 @@ router.get('/get_report_from_date', async (req, res) => {
     res.status(500).send(err.message);
   }
 });
+
 router.post('/how_many_zone_user_current_use',auth, async (req, res) => {
   const { user = null } = req.body;
   try {
@@ -885,5 +889,93 @@ router.post('/how_many_zone_user_current_use',auth, async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 });
+router.post('/stock_on_hands',auth, async (req, res) => {
+  try {
+    const startDate = new Date();
+    const range = parseInt(30);
 
+    const endDate = new Date(startDate.getTime() - (range - 1) * 24 * 60 * 60 * 1000);
+
+    const stkList = await Stocks.aggregate([
+      { $match: { $or: [{ status: 'warehouse' }, { out_date: { $gte: endDate } }] } },
+      {
+        $lookup: {
+          from: 'inventories', // Replace 'inventories' with the actual collection name of inventories
+          localField: 'inventory',
+          foreignField: '_id',
+          as: 'inventoryData'
+        }
+      },
+      { $unwind: '$inventoryData' },
+      {
+        $lookup: {
+          from: 'products', // Replace 'products' with the actual collection name of products
+          localField: 'inventoryData.product',
+          foreignField: '_id',
+          as: 'inventoryData.product'
+        }
+      },
+      { $unwind: '$inventoryData.product' },
+      {
+        $lookup: {
+          from: 'invoices', // Replace 'products' with the actual collection name of products
+          localField: 'inventoryData.invoice',
+          foreignField: '_id',
+          as: 'inventoryData.invoice'
+        }
+      },
+      { $unwind: '$inventoryData.invoice' },
+
+      {
+        $lookup: {
+          from: 'zones', // Replace 'zones' with the actual collection name of zones
+          localField: 'zone',
+          foreignField: '_id',
+          as: 'zoneData'
+        }
+      },
+
+      {
+        $group: {
+          _id: '$inventoryData',
+          stocks: {
+            $push: {
+              stock: '$$ROOT',
+              zone: {
+                $cond: {
+                  if: { $eq: [{ $size: '$zoneData' }, 0] },
+                  then: null,
+                  else: { $arrayElemAt: ['$zoneData', 0] }
+                }
+              },
+              // Include other stock fields you need
+            }
+          }
+        }
+      },
+      {
+        $project: {
+          inventory: '$_id',
+          stocks: 1,
+          _id: 0
+        }
+      },
+      {
+        $sort: { 'inventory.invoice.start_date': 1 }
+      }
+    ]);
+    const taskList = await StockTask.find({
+        start_date: { $gte: endDate },
+        type:'out'
+    })
+   
+    res.json( {
+      on_hands:stkList,
+      task:taskList
+    } );
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+});
 module.exports = router; 

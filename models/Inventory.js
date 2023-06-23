@@ -13,7 +13,10 @@ const InventorySchema = new mongoose.Schema({
         type:mongoose.Schema.Types.ObjectId,
         ref:'user',
     },
-  
+    invoice:{
+        type:mongoose.Schema.Types.ObjectId,
+        ref:'invoice',
+    },
     product:{
         type:mongoose.Schema.Types.ObjectId,
         ref:'product',
