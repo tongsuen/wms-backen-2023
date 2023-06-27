@@ -4,8 +4,8 @@ const StockTaskSchema = new mongoose.Schema({
   
     type:{
         type:String,
-        enum: ['out','move','combine', 'pickup'],
-        default:'out'// 1 :in warehouse, 2 :pennding export , 3 :out of stock , -1 : remove by user
+        enum: ['out','movein','moveout','combineout','combinein', 'pickup', 'add', 'remove'],
+        default:'out'
     },
     amount:{
         type:Number,

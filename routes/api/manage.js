@@ -1241,30 +1241,50 @@ router.post('/import_to_stocks_approve', auth, async (req, res) => {
 
             return res.json(invoice)
         }
+        const promises = invoice.import_list.map(async (invInfo) => {
+            const inv = new Inventory();
+            inv.amount = invInfo.amount;
+            inv.current_amount = invInfo.amount;
+            inv.total_sub_unit = invInfo.sub_amount;
+            inv.current_sub_amount = invInfo.sub_amount;
+            inv.user = invoice.user;
+            inv.product = invInfo.product;
+            inv.name = invInfo.name;
+            inv.lot_number = invInfo.lot_number;
+            inv.product_code = invInfo.product_code;
+            inv.unit = invInfo.unit;
+            inv.sub_unit = invInfo.sub_unit;
+            inv.mfg_date = invInfo.mfg_date;
+            inv.exp_date = invInfo.exp_date;
+            inv.invoice = invoice;
+            await inv.save();
+            invInfo.inventory = inv;
+          });
+          
+        await Promise.all(promises);
+        // for (let i = 0; i < invoice.import_list.length; i++) {
+        //     const invInfo = invoice.import_list[i]
 
-        for (let i = 0; i < invoice.import_list.length; i++) {
-            const invInfo = invoice.import_list[i]
+        //     const inv = new Inventory()
+        //     inv.amount = invInfo.amount
+        //     inv.current_amount = invInfo.amount
+        //     inv.total_sub_unit = invInfo.sub_amount
+        //     inv.current_sub_amount = invInfo.sub_amount
 
-            const inv = new Inventory()
-            inv.amount = invInfo.amount
-            inv.current_amount = invInfo.amount
-            inv.total_sub_unit = invInfo.sub_amount
-            inv.current_sub_amount = invInfo.sub_amount
-
-            inv.user = invoice.user
-            inv.product = invInfo.product
-            inv.name = invInfo.name
-            inv.lot_number = invInfo.lot_number
-            inv.product_code = invInfo.product_code
-            inv.unit = invInfo.unit
-            inv.sub_unit = invInfo.sub_unit
-            inv.mfg_date = invInfo.mfg_date
-            inv.exp_date = invInfo.exp_date
-            inv.invoice = invoice
-            await inv.save()
-            invoice.import_list[i].inventory = inv
-        }
-        console.log(invoice.import_list)
+        //     inv.user = invoice.user
+        //     inv.product = invInfo.product
+        //     inv.name = invInfo.name
+        //     inv.lot_number = invInfo.lot_number
+        //     inv.product_code = invInfo.product_code
+        //     inv.unit = invInfo.unit
+        //     inv.sub_unit = invInfo.sub_unit
+        //     inv.mfg_date = invInfo.mfg_date
+        //     inv.exp_date = invInfo.exp_date
+        //     inv.invoice = invoice
+        //     await inv.save()
+        //     invoice.import_list[i].inventory = inv
+        // }
+  
         invoice.history = [
             {
                 status: 'pending',
@@ -1276,7 +1296,7 @@ router.post('/import_to_stocks_approve', auth, async (req, res) => {
         invoice.status = 'pending'
 
         await invoice.save()
-
+        
         const by_user = await User.findById(req.user.id)
 
         send_noti(3, [invoice.user], 'นำสินค้าเข้าคลัง', 'สินค้า ถูกนำเข้าคลังสินค้าเรียบร้อยเเล้ว');
@@ -1294,7 +1314,7 @@ router.post('/import_to_stocks_approve', auth, async (req, res) => {
 
         const io = req.app.get('socketio');
         io.to(invoice.user.toString()).emit('action', { type: 'new_alert', data: alert });
-
+        console.log('end')
         res.json(invoice)
 
     } catch (err) {
@@ -1357,9 +1377,10 @@ router.post('/update_invoice_import_list_pending_status', auth, async (req, res)
                     inv.current_sub_amount = 0
                 }
                 await inv.save()
-                console.log(inv)
+                
             }
             else {
+                
                 const inv = new Inventory()
                 inv.amount = item.amount
                 inv.current_amount = item.amount
@@ -1381,7 +1402,8 @@ router.post('/update_invoice_import_list_pending_status', auth, async (req, res)
                 inv.sub_unit = item.sub_unit
                 inv.mfg_date = item.mfg_date
                 inv.exp_date = item.exp_date
-                inv.invoice = invoice
+                inv.invoice = invoice._id
+                console.log(inv)
                 await inv.save()
                 list[i].inventory = inv
             }

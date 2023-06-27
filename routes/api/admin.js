@@ -147,7 +147,7 @@ router.post('/accept_invoice', auth,async (req,res)=> {
                 const stkInfo=  stock_out.export_list[i]
                 //console.log(stkInfo)
                 const stock = await Stocks.findById(stkInfo.stock).populate('product');
-              
+             
                 if(stock.product.sub_unit){
                     stock.exportFrom = [{
                         invoice:stock_out,
@@ -162,7 +162,8 @@ router.post('/accept_invoice', auth,async (req,res)=> {
                         stock.prepare_out = 0
                         stock.prepare_out_sub_amount = 0
                         stock.status = 'out'
-                        stock.out_date = new Date()
+                        stock.out_date = invoice.start_date
+
                     }
                     else{
                         stock.current_amount = calculate_amount_by_sub_amount(stock.current_sub_amount,stock.product.item_per_unit)
@@ -192,7 +193,7 @@ router.post('/accept_invoice', auth,async (req,res)=> {
                         stock.prepare_out = 0
                         stock.prepare_out_sub_amount = 0
                         stock.status = 'out'
-                        stock.out_date = new Date()
+                        stock.out_date = invoice.start_date
                     }
                     const newTask = new StockTask()
                     newTask.stock = stock
@@ -203,7 +204,7 @@ router.post('/accept_invoice', auth,async (req,res)=> {
                     await newTask.save()
                 }
                 console.log(stock)
-               
+             
                 await stock.save()
             }
             stock_out.history = [
@@ -329,7 +330,14 @@ router.post('/update_invoice', [auth,upload_invoices.array('files')],async (req,
             query.files = array;
         }
         let doc = await Invoice.findOneAndUpdate({_id:req.body._id}, query);
-
+        if(query.start_date){
+          const tasks = await StockTask.find({invoice:inv._id})
+          for (let i = 0; i < tasks.length; i++) {
+            const task = tasks[i];
+            task.start_date = query.start_date
+            await task.save()
+          }
+        }
         await doc.save()
         res.json(doc)
 
@@ -458,7 +466,7 @@ router.post('/move_stock', auth, async (req, res) => {
             newTask.stock = stk
             newTask.amount = stk.current_amount
             newTask.sub_amount = stk.current_sub_amount
-            newTask.type = 'move'
+            newTask.type = 'movein'
             newTask.move = moveDoc
             await newTask.save()
             await Promise.all([stk.save(), moveDoc.save()]);
@@ -466,7 +474,10 @@ router.post('/move_stock', auth, async (req, res) => {
       } else {
             console.log(stk)
             stk.current_amount -= amount;
-            if(stk.product.sub_unit) stk.current_sub_amount -= sub_amount;
+            if(stk.product.sub_unit) {
+                stk.current_sub_amount -= sub_amount
+                stk.current_amount = calculate_amount_by_sub_amount(stk.current_sub_amount,stk.product.item_per_unit)
+            }
             if(stk.current_amount === 0) stk.current_amount = 1
 
             const newStock = new Stocks()
@@ -528,9 +539,17 @@ router.post('/move_stock', auth, async (req, res) => {
             newTask.stock = stk
             newTask.amount = amount
             newTask.sub_amount = sub_amount
-            newTask.type = 'move'
+            newTask.type = 'moveout'
             newTask.move = moveDoc
             await newTask.save()
+
+            const newTask2 = new StockTask()
+            newTask2.stock = newStock
+            newTask2.amount = amount
+            newTask2.sub_amount = sub_amount
+            newTask2.type = 'movein'
+            newTask2.move = moveDoc
+            await newTask2.save()
 
             console.log(newStock)
             console.log(stk)
@@ -569,7 +588,7 @@ router.post('/combine_stock', auth, async (req, res) => {
             newTask.stock = stockInfo
             newTask.amount = stk.amount
             newTask.amount = stk.sub_amount
-            newTask.type = 'combine'
+            newTask.type = 'combineout'
             array_task.push(newTask)
         }
         else{
@@ -580,7 +599,7 @@ router.post('/combine_stock', auth, async (req, res) => {
             const newTask = new StockTask()
             newTask.stock = stockInfo
             newTask.amount = stk.amount
-            newTask.type = 'combine'
+            newTask.type = 'combineout'
             array_task.push(newTask)
         }
         console.log(stockInfo)
@@ -627,6 +646,14 @@ router.post('/combine_stock', auth, async (req, res) => {
         remark:remark,
         user: req.user.id,
       });
+
+      const newTask = new StockTask()
+      newTask.stock = combinedStock
+      newTask.amount = combineStock.current_amount
+      newTask.current_sub_amount = combineStock.current_sub_amount
+      newTask.combine = combine 
+      newTask.type = 'combinein'
+      await newTask.save()
       await combine.save();
       await Promise.all(array_task.map(async (task) => {
           task.combine = combine
@@ -1269,22 +1296,30 @@ router.get('/update_data_stock', async (req, res) => {
       res.status(500).send('Server error');
     }
   });
-  router.get('/list_report', async (req, res) => {
+router.get('/list_report', async (req, res) => {
     try {
-      const list = await Invoice.find()
-      for (let i = 0; i < list.length; i++) {
-        const invoice = list[i];
-        for (let k = 0; k < invoice.import_list.length; k++) {
-          const item = invoice.import_list[k];
-          const inv = await Inventory.findById(item.inventory)
-          inv.invoice = invoice
-          await inv.save()
+      // await Stocks.deleteMany()
+      // await StockTask.deleteMany()
+      // await Inventory.deleteMany()
+      // await Invoice.deleteMany()
+      // await Invoice.deleteMany()
+      const invoice_list = await Invoice.find()
+      for (let i = 0; i < invoice_list.length; i++) {
+        const invoice = invoice_list[i];
+        const list = invoice.export_list
+        for (let j = 0; j < list.length; j++) {
+          const item = list[j];
+          const stk = await Stocks.findById(item.stock)
+          stk.out_date = invoice.start_date
+          await stk.save()
         }
       }
-      res.json({ list });
+      res.status(200).send('ok')
     } catch (err) {
       console.error(err.message);
       res.status(500).send('Server error');
     }
+    //product new 
+    //   
   });
 module.exports = router; 
