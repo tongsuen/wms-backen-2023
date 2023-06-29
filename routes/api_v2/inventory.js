@@ -20,7 +20,6 @@ const Zone = require('../../models/Zone')
 const Inbox = require('../../models/Inbox') 
 const Note = require('../../models/Notes') 
 const Alert = require('../../models/Alert') 
-const Sector = require('../../models/Sector') 
 
 
 router.post('/create_inventory', [auth,upload_inventories.array('images')], async (req, res) => {

@@ -20,7 +20,6 @@ const Alert = require('../../../models/Alert')
 const Combine = require('../../../models/Combine')
 const Move = require('../../../models/Move')
 
-const Sector = require('../../../models/Sector')
 const Notification = require('../../../models/Notification')
 const AdminNotification = require('../../../models/AdminNotification')
 const Location = require('../../../models/Location')

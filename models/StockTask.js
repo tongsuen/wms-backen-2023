@@ -4,7 +4,7 @@ const StockTaskSchema = new mongoose.Schema({
   
     type:{
         type:String,
-        enum: ['out','movein','moveout','combineout','combinein', 'pickup', 'add', 'remove'],
+        enum: ['out','move','movein','moveout','combineout','combinein', 'pickup', 'add', 'remove'],
         default:'out'
     },
     amount:{
@@ -28,6 +28,33 @@ const StockTaskSchema = new mongoose.Schema({
     move:{
         type:mongoose.Schema.Types.ObjectId,
         ref:'move',
+    },
+    move_props:{
+        from_zone:{
+            type:mongoose.Schema.Types.ObjectId,
+            ref:'zone',
+        },
+        from_zone_name:{
+            type:String
+        },
+        to_zone:{
+            type:mongoose.Schema.Types.ObjectId,
+            ref:'zone',
+        },
+        to_zone_name:{
+            type:String
+        },
+       
+    },
+    combine_props:{
+       
+        to_zone:{
+            type:mongoose.Schema.Types.ObjectId,
+            ref:'zone',
+        },
+        to_zone_name:{
+            type:String
+        },
     },
     start_date : {
         type : Date,

@@ -424,11 +424,11 @@ router.post('/move_stock', auth, async (req, res) => {
   
     try {
       const [stk, z, byUser] = await Promise.all([
-        Stocks.findOne({ _id: stock }).populate('product'),
+        (await Stocks.findOne({ _id: stock }).populate('product')).populate('zone'),
         Zone.findOne({ _id: zone }),
         User.findById(req.user.id),
       ]);
-  
+      console.log(stk)
       if (stk.current_amount < amount || stk.current_sub_amount < sub_amount) {
         return res
           .status(400)
@@ -453,7 +453,7 @@ router.post('/move_stock', auth, async (req, res) => {
                 user: byUser,
             });
 
-            stk.zone = z
+           
             const moveFrom = {
                 zone:z,
                 stock:stk,
@@ -466,13 +466,19 @@ router.post('/move_stock', auth, async (req, res) => {
             newTask.stock = stk
             newTask.amount = stk.current_amount
             newTask.sub_amount = stk.current_sub_amount
-            newTask.type = 'movein'
+            newTask.type = 'move'
             newTask.move = moveDoc
+            newTask.move_props = {
+              from_zone:stk.zone,
+              from_zone_name:stk.zone.name,
+              to_zone:z,
+              to_zone_name:z.name,
+            }
             await newTask.save()
+            stk.zone = z
             await Promise.all([stk.save(), moveDoc.save()]);
             res.json(stk);
       } else {
-            console.log(stk)
             stk.current_amount -= amount;
             if(stk.product.sub_unit) {
                 stk.current_sub_amount -= sub_amount
@@ -508,7 +514,8 @@ router.post('/move_stock', auth, async (req, res) => {
             newStock.inventory = stk.inventory
             newStock.product = stk.product
             newStock.unit = stk.unit
-
+            newStock.live_date = new Date(),
+            
             newStock.user = stk.user
             newStock.zone = z
             const flowBalance = {
@@ -541,6 +548,12 @@ router.post('/move_stock', auth, async (req, res) => {
             newTask.sub_amount = sub_amount
             newTask.type = 'moveout'
             newTask.move = moveDoc
+            newTask.move_props = {
+              from_zone:stk.zone,
+              from_zone_name:stk.zone.name,
+              to_zone:z,
+              to_zone_name:z.name,
+            }
             await newTask.save()
 
             const newTask2 = new StockTask()
@@ -549,6 +562,14 @@ router.post('/move_stock', auth, async (req, res) => {
             newTask2.sub_amount = sub_amount
             newTask2.type = 'movein'
             newTask2.move = moveDoc
+
+            newTask2.move_props = {
+              from_zone:stk.zone,
+              from_zone_name:stk.zone.name,
+              to_zone:z,
+              to_zone_name:z.name,
+            }
+
             await newTask2.save()
 
             console.log(newStock)
@@ -572,6 +593,7 @@ router.post('/combine_stock', auth, async (req, res) => {
       const totalSubAmount = list.reduce((total, stk) => total + stk.sub_amount, 0);
 
       let array_task = []
+      let array_stock = []
       for (const stockInfo of stocksInfo) {
  
         const stk = list.find((s) => s.stock === stockInfo._id.toString());
@@ -582,12 +604,12 @@ router.post('/combine_stock', auth, async (req, res) => {
             if (stockInfo.current_sub_amount === 0 ) {
                 stockInfo.current_amount = 0
                 stockInfo.status = 'combine';
-    
+                stockInfo.out_date = new Date()
             }
             const newTask = new StockTask()
             newTask.stock = stockInfo
-            newTask.amount = stk.amount
-            newTask.amount = stk.sub_amount
+            newTask.amount = calculate_amount_by_sub_amount(stk.sub_amount,stockInfo.product.item_per_unit)
+            newTask.sub_amount = stk.sub_amount
             newTask.type = 'combineout'
             array_task.push(newTask)
         }
@@ -595,6 +617,7 @@ router.post('/combine_stock', auth, async (req, res) => {
             stockInfo.current_amount =stockInfo.current_amount - stk.amount
             if (stockInfo.current_amount === 0 ) {
                 stockInfo.status = 'combine';
+                stockInfo.out_date = new Date()
             }
             const newTask = new StockTask()
             newTask.stock = stockInfo
@@ -606,7 +629,8 @@ router.post('/combine_stock', auth, async (req, res) => {
         // stockInfo.combineFrom = [
         //     {stock:,old_amount:,amount:}
         // ]
-        await stockInfo.save();
+        array_stock.push(stockInfo)
+       
       }
       
       const combinedStock = new Stocks({
@@ -623,9 +647,10 @@ router.post('/combine_stock', auth, async (req, res) => {
         is_sub:stocksInfo[0].sub_unit ? true:false,
         current_amount: stocksInfo[0].product.sub_unit ? calculate_amount_by_sub_amount(totalSubAmount,stocksInfo[0].product.item_per_unit): totalAmount,
         current_sub_amount: totalSubAmount,
+        live_date:new Date(),
       });
       console.log(combinedStock)
-      await combinedStock.save();
+    
       const from = list.map((stk) =>  {
         return {
           stock:stk.stock,
@@ -635,6 +660,7 @@ router.post('/combine_stock', auth, async (req, res) => {
         }
 
       });
+      console.log('A')
       const combine = new Combine({
         from: from,
         to: {
@@ -646,19 +672,31 @@ router.post('/combine_stock', auth, async (req, res) => {
         remark:remark,
         user: req.user.id,
       });
-
+   
       const newTask = new StockTask()
       newTask.stock = combinedStock
-      newTask.amount = combineStock.current_amount
-      newTask.current_sub_amount = combineStock.current_sub_amount
+      newTask.amount = combinedStock.current_amount
+      newTask.current_sub_amount = combinedStock.current_sub_amount
       newTask.combine = combine 
       newTask.type = 'combinein'
+  
+      await combinedStock.save();
       await newTask.save()
       await combine.save();
+      const zone_assign = await Zone.findById(combinedStock.zone)
       await Promise.all(array_task.map(async (task) => {
-          task.combine = combine
+          task.combine = combine,
+          task.combine_props = {
+            to_zone:zone_assign,
+            to_zone_name:zone_assign.name
+          }
           await task.save()
       }))
+      await Promise.all(array_stock.map(async (stock) => {
+       
+        await stock.save()
+      }))
+ 
       res.json(combinedStock);
     } catch (err) {
       console.error(err.message);
@@ -996,7 +1034,7 @@ router.post('/delete_zone', async (req, res) => {
 router.post('/list_stock_from_zone', async (req, res) => {
     try {
         const {zone_id} = req.body
-        const list = await Stocks.find({zone:zone_id,status:'warehouse'}).populate('product')
+        const list = await Stocks.find({zone:zone_id,status:'warehouse'}).populate('product').populate('zone')
         res.json(list)
     } catch (err) {
       console.error(err.message);
@@ -1298,22 +1336,26 @@ router.get('/update_data_stock', async (req, res) => {
   });
 router.get('/list_report', async (req, res) => {
     try {
-      // await Stocks.deleteMany()
-      // await StockTask.deleteMany()
-      // await Inventory.deleteMany()
-      // await Invoice.deleteMany()
-      // await Invoice.deleteMany()
-      const invoice_list = await Invoice.find()
-      for (let i = 0; i < invoice_list.length; i++) {
-        const invoice = invoice_list[i];
-        const list = invoice.export_list
-        for (let j = 0; j < list.length; j++) {
-          const item = list[j];
-          const stk = await Stocks.findById(item.stock)
-          stk.out_date = invoice.start_date
-          await stk.save()
-        }
-      }
+      // const remove_stock = await Stocks.deleteMany({user:'61541ba9050c89869bdc0f68'})
+      // const remove_invoice = await Invoice.deleteMany({user:'61541ba9050c89869bdc0f68'})
+      // const remove_inventory = await Inventory.deleteMany({user:'61541ba9050c89869bdc0f68'})
+      // const remove_move = await Move.deleteMany({user:'61541ba9050c89869bdc0f68'})
+      // const remove_com = await Combine.deleteMany({user:'61541ba9050c89869bdc0f68'})
+
+      const stocks = await StockTask.find({
+       stock:{$in:['6495629481015e0eff08184f', '6495629581015e0eff081857', '6495629481015e0eff081847']}
+      }).populate('stock');
+ 
+      // for (let i = 0; i < stocks.length; i++) { เก้าอี้ Furintrend รุ่น ST05B-Black เก้าอี้ เพื่อสุขภาพ รุ่น Wifi01RMP
+      //   const stock = stocks[i];6495629481015e0eff08184f 6495629581015e0eff081857 6495629481015e0eff081847
+      //   console.log(stock.inventory.invoice)
+      //   const invoice = await Invoice.findById(stock.inventory.invoice)
+      //   stock.out_date = invoice.start_date
+      //   await stock.save()
+      // }
+      //const result = await Stocks.updateMany({}, { $unset: { out_date: 1 } });
+
+      console.log(stocks)
       res.status(200).send('ok')
     } catch (err) {
       console.error(err.message);

@@ -18,7 +18,7 @@ const Inbox = require('../../models/Inbox')
 const Note = require('../../models/Notes') 
 const Alert = require('../../models/Alert') 
 const Combine = require('../../models/Combine') 
-const Sector = require('../../models/Sector') 
+
 const Notification = require('../../models/Notification') 
 const AdminNotification = require('../../models/AdminNotification') 
 const Location = require('../../models/Location') 
@@ -83,7 +83,9 @@ router.post('/list', [auth], async (req, res) => {
 
         query.$or = [
           { 'name': { $options: 'i', $regex: escapedKeyword } },
-          { 'detail': { $options: 'i', $regex: escapedKeyword } }
+          { 'detail': { $options: 'i', $regex: escapedKeyword } },
+          { 'main_code': { $options: 'i', $regex: escapedKeyword } },
+          { 'sub_code': { $options: 'i', $regex: escapedKeyword } }
         ];
       }
       console.log(query);

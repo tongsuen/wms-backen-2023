@@ -21,12 +21,9 @@ const Alert = require('../../models/Alert')
 const Combine = require('../../models/Combine')
 const Move = require('../../models/Move')
 
-const Sector = require('../../models/Sector')
 const Notification = require('../../models/Notification')
 const AdminNotification = require('../../models/AdminNotification')
 const Location = require('../../models/Location')
-const StocksInOut = require('../../models/StockInOut')
-const StockTask = require('../../models/StockTask')
 
 const Product = require('../../models/Product')
 const {calculate_amount_by_sub_amount} = require('../../utils/lib')
@@ -1127,47 +1124,7 @@ router.post('/list_zone_for_manage', auth, async (req, res) => {
         res.status(500).send(err.message)
     }
 })
-router.post('/list_zone_with_sector', auth, async (req, res) => {
-    const { } = req.body;
-    try {
-        const list_sector = await Sector.find();
 
-        const result2 = await Zone.aggregate([
-
-            {
-                $lookup:
-                {
-                    from: Stocks.collection.name,
-                    pipeline: [
-                        {
-                            $match: {
-                                is_active: true
-                            }
-
-                        }
-
-                    ],
-                    localField: "_id",
-                    foreignField: "zone",
-                    as: "stocks"
-                }
-            },
-            {
-                $sort:
-                {
-                    x: 1,
-                    y: 1
-                }
-            }
-        ])
-
-        res.json(result2)
-
-    } catch (err) {
-        console.log(err.message);
-        res.status(500).send(err.message)
-    }
-})
 router.post('/zone_with_stock', auth, async (req, res) => {
     const { zone_id } = req.body;
     try {
@@ -1241,81 +1198,93 @@ router.post('/import_to_stocks_approve', auth, async (req, res) => {
 
             return res.json(invoice)
         }
-        const promises = invoice.import_list.map(async (invInfo) => {
-            const inv = new Inventory();
-            inv.amount = invInfo.amount;
-            inv.current_amount = invInfo.amount;
-            inv.total_sub_unit = invInfo.sub_amount;
-            inv.current_sub_amount = invInfo.sub_amount;
-            inv.user = invoice.user;
-            inv.product = invInfo.product;
-            inv.name = invInfo.name;
-            inv.lot_number = invInfo.lot_number;
-            inv.product_code = invInfo.product_code;
-            inv.unit = invInfo.unit;
-            inv.sub_unit = invInfo.sub_unit;
-            inv.mfg_date = invInfo.mfg_date;
-            inv.exp_date = invInfo.exp_date;
-            inv.invoice = invoice;
-            await inv.save();
-            invInfo.inventory = inv;
-          });
+        else{
+            // const promises = invoice.import_list.map(async (invInfo) => {
+            //     const inv = new Inventory();
+            //     inv.amount = invInfo.amount;
+            //     inv.current_amount = invInfo.amount;
+            //     inv.total_sub_unit = invInfo.sub_amount;
+            //     inv.current_sub_amount = invInfo.sub_amount;
+            //     inv.user = invoice.user;
+            //     inv.product = invInfo.product;
+            //     inv.name = invInfo.name;
+            //     inv.lot_number = invInfo.lot_number;
+            //     inv.product_code = invInfo.product_code;
+            //     inv.unit = invInfo.unit;
+            //     inv.sub_unit = invInfo.sub_unit;
+            //     inv.mfg_date = invInfo.mfg_date;
+            //     inv.exp_date = invInfo.exp_date;
+            //     inv.invoice = invoice;
+            //     await inv.save();
+            //     invInfo.inventory = inv;
+            //   });
+              
+            // await Promise.all(promises);
+            const listInv = []
+            for (let i = 0; i < invoice.import_list.length; i++) {
+                const invInfo = invoice.import_list[i]
+    
+                const inv = new Inventory()
+                inv.amount = invInfo.amount
+                inv.current_amount = invInfo.amount
+                inv.total_sub_unit = invInfo.sub_amount
+                inv.current_sub_amount = invInfo.sub_amount
+    
+                inv.user = invoice.user
+                inv.product = invInfo.product
+                inv.name = invInfo.name
+                inv.lot_number = invInfo.lot_number
+                inv.product_code = invInfo.product_code
+                inv.unit = invInfo.unit
+                inv.sub_unit = invInfo.sub_unit
+                inv.mfg_date = invInfo.mfg_date
+                inv.exp_date = invInfo.exp_date
+                inv.invoice = invoice
+                listInv.push(inv)
+               
+            }
           
-        await Promise.all(promises);
-        // for (let i = 0; i < invoice.import_list.length; i++) {
-        //     const invInfo = invoice.import_list[i]
+            await Promise.all(listInv.map(async (inv) => {
+                await inv.save()
+            }))
 
-        //     const inv = new Inventory()
-        //     inv.amount = invInfo.amount
-        //     inv.current_amount = invInfo.amount
-        //     inv.total_sub_unit = invInfo.sub_amount
-        //     inv.current_sub_amount = invInfo.sub_amount
-
-        //     inv.user = invoice.user
-        //     inv.product = invInfo.product
-        //     inv.name = invInfo.name
-        //     inv.lot_number = invInfo.lot_number
-        //     inv.product_code = invInfo.product_code
-        //     inv.unit = invInfo.unit
-        //     inv.sub_unit = invInfo.sub_unit
-        //     inv.mfg_date = invInfo.mfg_date
-        //     inv.exp_date = invInfo.exp_date
-        //     inv.invoice = invoice
-        //     await inv.save()
-        //     invoice.import_list[i].inventory = inv
-        // }
-  
-        invoice.history = [
-            {
-                status: 'pending',
-                user: req.user.id,
-            },
-            ...invoice.history,
-
-        ]
-        invoice.status = 'pending'
-
-        await invoice.save()
+            invoice.history = [
+                {
+                    status: 'pending',
+                    user: req.user.id,
+                },
+                ...invoice.history,
+    
+            ]
+            invoice.status = 'pending'
+            invoice.import_list = invoice.import_list.map((importItem, index) => {
+                return {
+                  ...importItem,
+                  inventory: listInv[index]._id
+                };
+              });
+              console.log(invoice.import_list)
+            await invoice.save()
+       
+            const by_user = await User.findById(req.user.id)
+    
+            send_noti(3, [invoice.user], 'นำสินค้าเข้าคลัง', 'สินค้า ถูกนำเข้าคลังสินค้าเรียบร้อยเเล้ว');
+    
+            const alert = new Notification({
+                invoice: invoice,
+                user: invoice.user,
+                by_user: by_user,
+                type: 'import',
+                title: 'ยืนยันนำสินค้าเข้าคลัง',
+                detail: 'ยืนยันนำสินค้าเข้าคลัง'
+            })
+            await alert.save()
+            console.log('ok')
+            const io = req.app.get('socketio');
+            io.to(invoice.user.toString()).emit('action', { type: 'new_alert', data: alert });
+            res.json(invoice)
+        }
         
-        const by_user = await User.findById(req.user.id)
-
-        send_noti(3, [invoice.user], 'นำสินค้าเข้าคลัง', 'สินค้า ถูกนำเข้าคลังสินค้าเรียบร้อยเเล้ว');
-
-        const alert = new Notification({
-            invoice: invoice,
-            user: invoice.user,
-            by_user: by_user,
-            type: 'import',
-
-            title: 'ยืนยันนำสินค้าเข้าคลัง',
-            detail: 'ยืนยันนำสินค้าเข้าคลัง'
-        })
-        await alert.save()
-
-        const io = req.app.get('socketio');
-        io.to(invoice.user.toString()).emit('action', { type: 'new_alert', data: alert });
-        console.log('end')
-        res.json(invoice)
 
     } catch (err) {
         console.log(err.message);
@@ -1502,7 +1471,6 @@ router.post('/import_to_stocks_by_invoice', auth, async (req, res) => {
       let total_amount = 0;
       const newArray = [];
       const stocksToSave = [];
-      const stocksInOutToSave = [];
 
       for (const info of list) {
         const { amount, sub_amount, inventory, zone } = info;
@@ -1562,7 +1530,6 @@ router.post('/import_to_stocks_by_invoice', auth, async (req, res) => {
         });
       }
     await Stocks.insertMany(stocksToSave);
-    //await StockInOut.insertMany(stocksInOutToSave);
     await Promise.all([
         Invoice.updateOne({ _id: invoice_id }, {
           $push: {
@@ -2118,6 +2085,9 @@ router.post('/list_invoice', auth, async (req, res) => {
             if (parseInt(type) === 1) {
                 query.$or = [
                     { 'ref_number': { $regex: searchRegex } },
+                    { 'remark': { $regex: searchRegex } },
+                    { 'driver': { $regex: searchRegex } },
+                    { 'car_code': { $regex: searchRegex } },
                     { 'import_list.name': { $regex: searchRegex } },
                     { 'import_list.lot_number': { $regex: searchRegex } },
                     { 'import_list.product_code': { $regex: searchRegex } },
@@ -2126,6 +2096,9 @@ router.post('/list_invoice', auth, async (req, res) => {
             else {
                 query.$or = [
                     { 'ref_number': { $regex: searchRegex } },
+                    { 'remark': { $regex: searchRegex } },
+                    { 'driver': { $regex: searchRegex } },
+                    { 'car_code': { $regex: searchRegex } },
                     { 'export_list.name': { $regex: searchRegex } },
                     { 'export_list.lot_number': { $regex: searchRegex } },
                     { 'export_list.product_code': { $regex: searchRegex } },

@@ -895,10 +895,9 @@ router.post('/stock_on_hands', auth, async (req, res) => {
     const {start_date = null ,end_date = null,user=null} = req.body
     const currentDate = new Date()
     const range = 30;
- 
     const startDate = start_date ? new Date(start_date) :new Date(currentDate.getTime() - (range - 1) * 24 * 60 * 60 * 1000) 
   
-    const endDate = end_date? new Date(end_date):currentDate;
+    const endDate = new Date((end_date? new Date(end_date):currentDate).getTime() + (1) * 24 * 60 * 60 * 1000);
     
     let query = 
     {
@@ -995,7 +994,8 @@ router.post('/stock_on_hands', auth, async (req, res) => {
         $project: {
           inventory: '$_id',
           stocks: 1,
-          _id: 0
+          _id: 0,
+         
         }
       },
       {
@@ -1003,56 +1003,109 @@ router.post('/stock_on_hands', auth, async (req, res) => {
       }
     ]);
 
+    const listTaskOf = await Stocks.find(query)
     const taskList = await StockTask.find({
-      start_date: { $gte: startDate },
-     
-    });
-
-    const count = await Stocks.aggregate([
-      {
-        $match: query
-      },
-      {
-        $group: {
-          _id: '$zone'
-        }
-      },
-      {
-        $group: {
-          _id: null,
-          total: { $sum: 1 }
-        }
+      start_date: { $gte: startDate }, 
+      stock:{
+        $in:listTaskOf
       }
-    ]);
-    const result = await Stocks.aggregate([
-      {
-        $match: query
-      },
-      {
-        $group: {
-          _id: '$zone',
-          stocks: {
-            $push: {
-              stock: '$$ROOT',
-            }
-          }
-        }
-      },
- 
-    ]);
-    
-    console.log(result.length)
+    }).populate('move').populate('invoice');
 
+    console.log(taskList.length)
+    // const count = await Stocks.aggregate([
+    //   {
+    //     $match: query
+    //   },
+    //   {
+    //     $group: {
+    //       _id: '$zone'
+    //     }
+    //   },
+    //   {
+    //     $group: {
+    //       _id: null,
+    //       total: { $sum: 1 }
+    //     }
+    //   }
+    // ]);
+    
     res.json({
       on_hands: stkList,
       task: taskList,
-      usage: count[0]?.total || 0
+      // usage: count[0]?.total || 0
     });
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server error');
   }
 });
+router.post('/stock_on_hands_2', auth, async (req, res) => {
+  try {
+    const { start_date = null, end_date = null, user = null } = req.body;
+    const currentDate = new Date();
+    const range = 30;
 
+    const startDate = start_date ? new Date(start_date) : new Date(currentDate.getTime() - (range - 1) * 24 * 60 * 60 * 1000);
+    const endDate = end_date ? new Date(end_date) : currentDate;
+
+    let query = {
+      is_active: true,
+      live_date: { $lte: endDate },
+      $or: [
+        { out_date: { $gte: startDate } },
+        { out_date: null }
+      ]
+    };
+
+    if (user) {
+      query.user = mongoose.Types.ObjectId(user);
+    }
+
+    const stocks = await Stocks.find(query);
+
+    const inventoryIds = stocks.map(stock => stock.inventory);
+    const inventories = await Inventory.find({ _id: { $in: inventoryIds } });
+
+    const productIds = inventories.map(inventory => inventory.product);
+    const products = await Product.find({ _id: { $in: productIds } });
+
+    const invoiceIds = inventories.map(inventory => inventory.invoice);
+    const invoices = await Invoice.find({ _id: { $in: invoiceIds } });
+
+    const zoneIds = stocks.map(stock => stock.zone);
+    const zones = await Zone.find({ _id: { $in: zoneIds } });
+
+    const stkList = stocks.map(stock => {
+      const inventory = inventories.find(inventory => inventory._id.equals(stock.inventory));
+      const product = products.find(product => product._id.equals(inventory.product));
+      const invoice = invoices.find(invoice => invoice._id.equals(inventory.invoice));
+      const zone = zones.find(zone => zone._id.equals(stock.zone));
+
+      return {
+        inventory,
+        product,
+        invoice,
+        stocks: [
+          {
+            stock,
+            zone: zone || null
+          }
+        ]
+      };
+    });
+
+    const taskList = await StockTask.find({
+      start_date: { $gte: startDate },
+    }).populate('move').populate('invoice');;
+
+    res.json({
+      on_hands: stkList,
+      task: taskList
+    });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+});
 
 module.exports = router; 
