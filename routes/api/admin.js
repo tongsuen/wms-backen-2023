@@ -1125,7 +1125,12 @@ router.post('/create_zone', async (req, res) => {
                 
             }
             else{
-                zone.name = zone.x + req.body.main + zone.y.toString().padStart(2, '0')
+                if(main === p) {
+                  zone.name = zone.y + req.body.main + zone.x.toString().padStart(2, '0')
+                }
+                else {
+                  zone.name = zone.x + req.body.main + zone.y.toString().padStart(2, '0')
+                }
                 await zone.save()
             }
         }
