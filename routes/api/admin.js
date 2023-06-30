@@ -1111,11 +1111,31 @@ router.post('/list_zones_with_empty_flag', async (req, res) => {
 });
 router.post('/create_zone', async (req, res) => {
   try {
- 
-      const zone = new Zone(req.body)
-      zone.name = zone.x + req.body.main + zone.y.toString().padStart(2, '0')
-      await zone.save()
-      res.json({ zone });
+      const {main,x,y} = req.body
+
+      for (let i = 1; i <= x; i++) {
+        for (let j = 1; j <= y; j++) {
+            const zone = new Zone({
+              main:main,
+              x:i,
+              y:j
+            })
+            const old_zone = await Zone.findOne({main:main,x:i,y:j})
+            if(old_zone){
+              console.log('old zone',old_zone.name)
+            }
+            else{
+                zone.name = zone.x + req.body.main + zone.y.toString().padStart(2, '0')
+                console.log(zone.name)
+
+                await zone.save()
+            }
+        }
+      }
+  
+      
+      //await zone.save()
+      res.json([]);
   } catch (err) {
       console.error(err.message);
       res.status(500).send('Server error');
@@ -1445,6 +1465,7 @@ router.get('/delete_data_of_stock_test', async (req, res) => {
       const remove_com = await Combine.deleteMany({user:'61541ba9050c89869bdc0f68'})
       const remove_tasks = await StockTask.deleteMany({'invoice.user':'61541ba9050c89869bdc0f68'})
 
+      const remove_z = await Zone.deleteMany({main:{$in:['K','J','I']}})
       console.log(stocks)
       res.status(200).send('ok')
     } catch (err) {
