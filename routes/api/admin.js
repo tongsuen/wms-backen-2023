@@ -57,6 +57,96 @@ router.post('/list_admin', auth,async (req,res)=> {
         res.status(500).send(err.message)
     }
 })
+
+router.post('/add_amount_to_stock', auth,async (req,res)=> {
+  try {
+  
+      const {stock_id,amount,sub_amount,remark,start_date} = req.body
+      if(stock_id){
+        return res
+        .status(400)
+        .json({ message: 'Please add stock id for find specific stock' });
+      }
+      if(remark){
+        return res
+        .status(400)
+        .json({ message: 'Please add remark for more information' });
+      }
+      const stock = await Stocks.findById(stock_id).populate('product')
+      if(stock.product.sub_unit){
+        stock.current_sub_amount = stock.current_sub_amount + sub_amount
+        stock.amount = calculate_amount_by_sub_amount(stock.current_sub_amount,stock.product.item_per_unit)
+      }
+      else{
+        stock.current_amount = stock.current_amount + amount
+      }
+      await stock.save()
+
+      const newTask = new StockTask()
+      newTask.stock = stock
+      newTask.amount =amount
+      newTask.sub_amount = sub_amount
+      newTask.type = 'add'
+      newTask.remark = remark
+      newTask.start_date = start_date ? start_date:new Date()
+      await newTask.save()
+      res.json(list)
+
+  }catch(err){
+      console.log(err.message);
+      res.status(500).send(err.message)
+  }
+})
+router.post('/remove_amount_to_stock', auth,async (req,res)=> {
+  try {
+  
+      const {stock_id,amount,sub_amount,remark,start_date} = req.body
+      if(stock_id){
+        return res
+        .status(400)
+        .json({ message: 'Please add stock id for find specific stock' });
+      }
+      if(remark){
+        return res
+        .status(400)
+        .json({ message: 'Please add remark for more information' });
+      }
+      const stock = await Stocks.findById(stock_id).populate('product')
+      if(stock.product.sub_unit){
+        stock.current_sub_amount = stock.current_sub_amount - sub_amount
+        stock.amount = calculate_amount_by_sub_amount(stock.current_sub_amount,stock.product.item_per_unit)
+        if(stock.current_sub_amount <= 0){
+          return res
+          .status(400)
+          .json({ message: 'your amount more than or equal stock amount' });
+        }
+      }
+      else{
+        stock.current_amount = stock.current_amount - amount
+        if(stock.current_amount <= 0){
+          return res
+          .status(400)
+          .json({ message: 'your amount more than or equal stock amount' });
+        }
+      }
+
+      await stock.save()
+
+      const newTask = new StockTask()
+      newTask.stock = stock
+      newTask.amount =amount
+      newTask.sub_amount = sub_amount
+      newTask.type = 'pickup'
+      newTask.remark = remark
+      newTask.start_date = start_date ? start_date:new Date()
+      await newTask.save()
+      res.json(list)
+
+  }catch(err){
+      console.log(err.message);
+      res.status(500).send(err.message)
+  }
+})
 router.post('/list_user', auth,async (req,res)=> {
     try {
     
@@ -162,7 +252,7 @@ router.post('/accept_invoice', auth,async (req,res)=> {
                         stock.prepare_out = 0
                         stock.prepare_out_sub_amount = 0
                         stock.status = 'out'
-                        stock.out_date = invoice.start_date
+                        stock.out_date = stock_out.start_date
 
                     }
                     else{
@@ -176,6 +266,7 @@ router.post('/accept_invoice', auth,async (req,res)=> {
                     newTask.sub_amount = stkInfo.sub_amount
                     newTask.invoice = stock_out
                     newTask.type = 'out'
+                    newTask.stock_status =stock.status
                     newTask.start_date = stock_out.start_date
                     await newTask.save()
                 }
@@ -193,13 +284,14 @@ router.post('/accept_invoice', auth,async (req,res)=> {
                         stock.prepare_out = 0
                         stock.prepare_out_sub_amount = 0
                         stock.status = 'out'
-                        stock.out_date = invoice.start_date
+                        stock.out_date = stock_out.start_date
                     }
                     const newTask = new StockTask()
                     newTask.stock = stock
                     newTask.amount = stkInfo.amount
                     newTask.invoice = stock_out
                     newTask.type = 'out'
+                    newTask.stock_status =stock.status
                     newTask.start_date = stock_out.start_date
                     await newTask.save()
                 }
@@ -336,6 +428,17 @@ router.post('/update_invoice', [auth,upload_invoices.array('files')],async (req,
             const task = tasks[i];
             task.start_date = query.start_date
             await task.save()
+          
+            
+            if(task.stock_status !== 'warehouse'){
+              
+              const stock = await Stocks.findById(task.stock)
+              if(stock.out_date){
+                stock.out_date = task.start_date
+                await stock.save()
+              }
+             
+            }
           }
         }
         await doc.save()
@@ -468,6 +571,7 @@ router.post('/move_stock', auth, async (req, res) => {
             newTask.sub_amount = stk.current_sub_amount
             newTask.type = 'move'
             newTask.move = moveDoc
+            newTask.stock_status =stk.status
             newTask.move_props = {
               from_zone:stk.zone,
               from_zone_name:stk.zone.name,
@@ -548,6 +652,7 @@ router.post('/move_stock', auth, async (req, res) => {
             newTask.sub_amount = sub_amount
             newTask.type = 'moveout'
             newTask.move = moveDoc
+            newTask.stock_status =stk.status
             newTask.move_props = {
               from_zone:stk.zone,
               from_zone_name:stk.zone.name,
@@ -562,7 +667,7 @@ router.post('/move_stock', auth, async (req, res) => {
             newTask2.sub_amount = sub_amount
             newTask2.type = 'movein'
             newTask2.move = moveDoc
-
+            newTask.stock_status =newStock.status
             newTask2.move_props = {
               from_zone:stk.zone,
               from_zone_name:stk.zone.name,
@@ -611,6 +716,7 @@ router.post('/combine_stock', auth, async (req, res) => {
             newTask.amount = calculate_amount_by_sub_amount(stk.sub_amount,stockInfo.product.item_per_unit)
             newTask.sub_amount = stk.sub_amount
             newTask.type = 'combineout'
+            newTask.stock_status =stockInfo.status
             array_task.push(newTask)
         }
         else{
@@ -623,6 +729,7 @@ router.post('/combine_stock', auth, async (req, res) => {
             newTask.stock = stockInfo
             newTask.amount = stk.amount
             newTask.type = 'combineout'
+            newTask.stock_status =stock.status
             array_task.push(newTask)
         }
         console.log(stockInfo)
@@ -679,7 +786,8 @@ router.post('/combine_stock', auth, async (req, res) => {
       newTask.current_sub_amount = combinedStock.current_sub_amount
       newTask.combine = combine 
       newTask.type = 'combinein'
-  
+      newTask.stock_status =combinedStock.status
+
       await combinedStock.save();
       await newTask.save()
       await combine.save();
@@ -799,24 +907,6 @@ router.post('/list_file', auth, async (req, res) => {
         res.status(500).send('Server error');
     }
 });
-router.get('/delete_data', async (req, res) => {
-    const { stocks, zone, byUser } = req.body;
-  
-    try {
-      Invoice.deleteMany({type:1})
-      .then(() => console.log('All invoice removed'))
-      .catch((err) => console.error(err));
-
-    //   Stocks.deleteMany({})
-    //   .then(() => //console.log('All data removed'))
-    //   .catch((err) => console.error(err));
-
-      res.json({});
-    } catch (err) {
-      console.error(err.message);
-      res.status(500).send('Server error');
-    }
-});
 
 router.get('/create_data', async (req, res) => {
     const { stocks, zone, byUser } = req.body;
@@ -879,8 +969,10 @@ router.get('/create_data', async (req, res) => {
       res.status(500).send('Server error');
     }
 });
+
 router.post('/list_zones_with_empty_flag', async (req, res) => {
-    const {user} = req.body
+    const {user,search} = req.body
+    
     let query = {is_active:true,status:'warehouse'}
     query.main = { $in: ['A','B','C','D','E','F','G','H','I'] };
     try {
@@ -915,7 +1007,12 @@ router.post('/list_zones_with_empty_flag', async (req, res) => {
                         $size: {
                           $filter: {
                             input: '$stocks',
-                            cond: { $eq: ['$$this.status', 'warehouse'] }
+                            cond: {
+                              $and: [
+                                { $eq: ['$$this.status', 'warehouse'] },
+                                { $regexMatch: { input: '$$this.name', regex: search, options: 'i' } }
+                              ]
+                            }
                           }
                         }
                       },
@@ -972,7 +1069,12 @@ router.post('/list_zones_with_empty_flag', async (req, res) => {
                         $size: {
                           $filter: {
                             input: '$stocks',
-                            cond: { $eq: ['$$this.status', 'warehouse'] }
+                            cond: {
+                              $and: [
+                                { $eq: ['$$this.status', 'warehouse'] },
+                                { $regexMatch: { input: '$$this.name', regex: search, options: 'i' } }
+                              ]
+                            }
                           }
                         }
                       },
@@ -1000,7 +1102,7 @@ router.post('/list_zones_with_empty_flag', async (req, res) => {
             }
         }
       ])
-
+     
       res.json({ zones:[...list,...list2] });
     } catch (err) {
       console.error(err.message);
@@ -1040,7 +1142,7 @@ router.post('/list_stock_from_zone', async (req, res) => {
       console.error(err.message);
       res.status(500).send('Server error');
     }
-  });
+});
 router.get('/find_far_away_empty_zone', async (req, res) => {
     try {
       const doorLocation = { x: 17, y: 15 }; // Coordinates of the door
@@ -1334,26 +1436,14 @@ router.get('/update_data_stock', async (req, res) => {
       res.status(500).send('Server error');
     }
   });
-router.get('/list_report', async (req, res) => {
+router.get('/delete_data_of_stock_test', async (req, res) => {
     try {
-      // const remove_stock = await Stocks.deleteMany({user:'61541ba9050c89869bdc0f68'})
-      // const remove_invoice = await Invoice.deleteMany({user:'61541ba9050c89869bdc0f68'})
-      // const remove_inventory = await Inventory.deleteMany({user:'61541ba9050c89869bdc0f68'})
-      // const remove_move = await Move.deleteMany({user:'61541ba9050c89869bdc0f68'})
-      // const remove_com = await Combine.deleteMany({user:'61541ba9050c89869bdc0f68'})
-
-      const stocks = await StockTask.find({
-       stock:{$in:['6495629481015e0eff08184f', '6495629581015e0eff081857', '6495629481015e0eff081847']}
-      }).populate('stock');
- 
-      // for (let i = 0; i < stocks.length; i++) { เก้าอี้ Furintrend รุ่น ST05B-Black เก้าอี้ เพื่อสุขภาพ รุ่น Wifi01RMP
-      //   const stock = stocks[i];6495629481015e0eff08184f 6495629581015e0eff081857 6495629481015e0eff081847
-      //   console.log(stock.inventory.invoice)
-      //   const invoice = await Invoice.findById(stock.inventory.invoice)
-      //   stock.out_date = invoice.start_date
-      //   await stock.save()
-      // }
-      //const result = await Stocks.updateMany({}, { $unset: { out_date: 1 } });
+      const remove_stock = await Stocks.deleteMany({user:'61541ba9050c89869bdc0f68'})
+      const remove_invoice = await Invoice.deleteMany({user:'61541ba9050c89869bdc0f68'})
+      const remove_inventory = await Inventory.deleteMany({user:'61541ba9050c89869bdc0f68'})
+      const remove_move = await Move.deleteMany({user:'61541ba9050c89869bdc0f68'})
+      const remove_com = await Combine.deleteMany({user:'61541ba9050c89869bdc0f68'})
+      const remove_tasks = await StockTask.deleteMany({'invoice.user':'61541ba9050c89869bdc0f68'})
 
       console.log(stocks)
       res.status(200).send('ok')

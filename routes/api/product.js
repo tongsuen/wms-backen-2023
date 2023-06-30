@@ -202,10 +202,24 @@ router.post('/update', [auth,upload_inventories.array('images')],async (req,res)
         if(!query.sub_unit){
             query.sub_unit = null
         }
-        Product.findOneAndUpdate({_id: query._id},{$set:query},{new:true, upsert: false},function(err,data){
+        let isSameName = true
+        if(query.name !== inv.name){
+            isSameName = false
+        }
+        Product.findOneAndUpdate({_id: query._id},{$set:query},{new:true, upsert: false},async function(err,data){
             if(err){
                 return res.status(500).json(err);
             } else {
+                if(!isSameName){
+                    await Stocks.updateMany(
+                        { product: query._id },
+                        { $set: { name: query.name } }
+                      );
+                    await Inventory.updateMany(
+                        { product: query._id },
+                        { $set: { name: query.name } }
+                    );
+                }
                 if(!req.user.admin){
                     const alert = new AdminNotification({
                         product: data._id,

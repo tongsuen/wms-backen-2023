@@ -56,6 +56,12 @@ const StockTaskSchema = new mongoose.Schema({
             type:String
         },
     },
+    stock_status:{
+        type:String
+    },
+    remark:{
+        type:String
+    },
     start_date : {
         type : Date,
         default : Date.now
