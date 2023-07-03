@@ -24,6 +24,7 @@ const Move = require('../../models/Move')
 const Notification = require('../../models/Notification')
 const AdminNotification = require('../../models/AdminNotification')
 const Location = require('../../models/Location')
+const StockTask = require('../../models/StockTask')
 
 const Product = require('../../models/Product')
 const {calculate_amount_by_sub_amount} = require('../../utils/lib')
@@ -565,10 +566,19 @@ router.post('/list_inventory', auth, async (req, res) => {
     }
 })
 router.post('/list_stocks', auth, async (req, res) => {
-    const { user = null, search, status, page = 1, limit = 10, is_expire = false, zone=null } = req.body;
+    const { user = null, search, status, page = 1, limit = 10, is_expire = false, zone=null,sort=null } = req.body;
     try {
-
-        var query = { is_active: true };
+        var sort_query = {'zone':1}
+        if(sort === 'create_date'){
+            sort_query = {'create_date':-1}
+        }
+        else if(sort === 'name'){
+            sort_query = {'name':1}
+        }
+        else{
+            sort_query = {'zone':1}
+        }
+        var query = { is_active: true, };
         if (user !== null) query.user = user;
         if (zone !== null) {
            
@@ -597,14 +607,14 @@ router.post('/list_stocks', auth, async (req, res) => {
             query.inventory = { $in: expiringInventory.map(item => item._id) }
 
         }
-        console.log(query);
+        console.log(sort_query);
         // if(search) {
         //     query.inventory = {name:{$regex : search}} ;
         // }
-        const list = await Stocks.find(query).populate({ path: 'inventory', populate: { path: 'user', model: 'user' } }).populate('product').populate('zone').sort({'zone':1}).skip((page - 1) * limit).limit(limit)
+        const list = await Stocks.find(query).populate({ path: 'inventory', populate: { path: 'user', model: 'user' } }).populate('product').populate('zone').sort(sort_query).skip((page - 1) * limit).limit(limit)
             .sort({ create_date: -1 });
         const total = await Stocks.countDocuments(query);
-        console.log(list);
+        //console.log(list);
         res.json({
             page: page,
             list: list,
@@ -1471,7 +1481,7 @@ router.post('/import_to_stocks_by_invoice', auth, async (req, res) => {
       let total_amount = 0;
       const newArray = [];
       const stocksToSave = [];
-
+    
       for (const info of list) {
         const { amount, sub_amount, inventory, zone } = info;
   
@@ -1511,7 +1521,7 @@ router.post('/import_to_stocks_by_invoice', auth, async (req, res) => {
         stock.current_amount = amount;
         stock.amount = amount;
         stock.user = invoice.user;
-        stock.status = 'pending';
+        stock.status = 'warehouse';
         stocksToSave.push(stock);
         
         
@@ -1625,7 +1635,7 @@ router.post('/import_to_stocks', auth, async (req, res) => {
             stock.current_amount = amount
             stock.amount = amount
             stock.user = user
-            stock.status = 'pending'
+            stock.status = 'warehouse'
             await stock.save()
             await inv.save()
 

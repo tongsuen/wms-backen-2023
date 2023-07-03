@@ -16,5 +16,6 @@ const connectDB = async () => {
         process.exit(1);
     }
 }
-////    "mongoURI":"mongodb+srv://tongsuendev:Kib1BiPmIc4oK3nh@cluster0.knrftv5.mongodb.net/?retryWrites=true&w=majority",
+// production mongodb URL//       "mongoURI":"mongodb+srv://tongsuendev:CEFnUFrhGPylK9Y7@cluster0.knrftv5.mongodb.net/?retryWrites=true&w=majority",
+
 module.exports = connectDB;

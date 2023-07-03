@@ -387,6 +387,26 @@ router.post('/accept_invoice', auth,async (req,res)=> {
         res.status(500).send(err.message)
     }
 })
+
+
+router.post('/accept_stock_into_warehouse', auth,async (req,res)=> {
+  const { stock_id} = req.body;
+  try {
+  
+      const stock = await Stocks.updateOne({ _id: stock_id }, {status:'warehouse'})
+      const newTask = new StockTask()
+            newTask.stock = stock
+            newTask.amount = stock.current_amount
+            newTask.sub_amount = stock.current_sub_amount
+            newTask.type = 'in'
+      await newTask.save()
+      res.json(stock)
+
+  }catch(err){
+      console.log(err.message);
+      res.status(500).send(err.message)
+  }
+})
 router.post('/update_invoice', [auth,upload_invoices.array('files')],async (req,res)=> {
     try {
         console.log(req.body)
@@ -1459,6 +1479,22 @@ router.get('/update_data_stock', async (req, res) => {
       res.status(500).send('Server error');
     }
   });
+  router.get('/update_some_data', async (req, res) => {
+    try {
+        const stockList = await Stocks.find({_id:{$in:['6495602f81015e0eff08121c','6495602f81015e0eff081218','6495602f81015e0eff081214','6495602f81015e0eff081210']}})
+        const zone  =  await Zone.findOne({name:'1L02'})
+        for (let i = 0; i < stockList.length; i++) {
+          const element = stockList[i];
+          element.zone = zone
+          await element.save()
+        }
+      res.json({ stockList });
+    } catch (err) {
+      console.error(err.message);
+      res.status(500).send('Server error');
+    }
+  });
+  //
 router.get('/delete_data_of_stock_test', async (req, res) => {
     try {
       const remove_stock = await Stocks.deleteMany({user:'61541ba9050c89869bdc0f68'})
