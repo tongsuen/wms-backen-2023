@@ -17,6 +17,7 @@ const StocksHistory = require('../../models/StocksHistory')
 const Zone = require('../../models/Zone')
 const Location = require('../../models/Location')
 const Product = require('../../models/Product')
+const { handleError } = require('../../utils/handleError')
 
 
 router.post('/search_inventory',async (req,res)=> {
@@ -33,8 +34,8 @@ router.post('/search_inventory',async (req,res)=> {
         return res.json(list)
 
     }catch(err){
-        console.log(err.message);
-        res.status(500).send(err.message)
+       
+         return res.status(500).json(handleError(err))
     }
 })
 router.post('/search_stocks_by_inventory',async (req,res)=> {
@@ -50,8 +51,8 @@ router.post('/search_stocks_by_inventory',async (req,res)=> {
         const list = await Stocks.find( { inventory : { $in : list_inv } } ).populate('inventory').populate('user')
         return res.json(list)
     }catch(err){
-        console.log(err.message);
-        res.status(500).send(err.message)
+       
+         return res.status(500).json(handleError(err))
     }
 })
 router.post('/search_stock_by_name',async (req,res)=> {
@@ -62,8 +63,8 @@ router.post('/search_stock_by_name',async (req,res)=> {
     
         return res.json(list)
     }catch(err){
-        console.log(err.message);
-        res.status(500).send(err.message)
+       
+         return res.status(500).json(handleError(err))
     }
 })
 router.post('/search_stock_by_name',async (req,res)=> {
@@ -74,8 +75,8 @@ router.post('/search_stock_by_name',async (req,res)=> {
     
         return res.json(list)
     }catch(err){
-        console.log(err.message);
-        res.status(500).send(err.message)
+       
+         return res.status(500).json(handleError(err))
     }
 })
 router.post('/search_stock_by_product_code',async (req,res)=> {
@@ -86,8 +87,8 @@ router.post('/search_stock_by_product_code',async (req,res)=> {
     
         return res.json(list)
     }catch(err){
-        console.log(err.message);
-        res.status(500).send(err.message)
+       
+         return res.status(500).json(handleError(err))
     }
 })
 router.post('/search_stock_by_lot_number',async (req,res)=> {
@@ -98,8 +99,8 @@ router.post('/search_stock_by_lot_number',async (req,res)=> {
     
         return res.json(list)
     }catch(err){
-        console.log(err.message);
-        res.status(500).send(err.message)
+       
+         return res.status(500).json(handleError(err))
     }
 })
 
@@ -112,8 +113,8 @@ router.post('/autocomplete_lot_number',auth,async (req,res)=> {
         
         return res.json(list_inv)
     }catch(err){
-        console.log(err.message);
-        res.status(500).send(err.message)
+       
+         return res.status(500).json(handleError(err))
     }
 })
 
@@ -128,20 +129,18 @@ router.post('/autocomplete_product',auth,async (req,res)=> {
             query.user = user ? user : req.user.id
         }
         if (keyword) {
-            const escapedKeyword = keyword.toLowerCase();
+            const escapedKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
             query.name = {
-              $options: 'i',
-              $text: {
-                $search: escapedKeyword
-              }
+              $regex: escapedKeyword,
+              $options: 'i'
             };
           }
         const list_inv = await Product.find(query)
         
         return res.json(list_inv)
     }catch(err){
-        console.log(err.message);
-        res.status(500).send(err.message)
+       
+         return res.status(500).json(handleError(err))
     }
 })
 
@@ -155,8 +154,8 @@ router.post('/autocomplete_inventory_name',auth,async (req,res)=> {
         
         return res.json(list_inv)
     }catch(err){
-        console.log(err.message);
-        res.status(500).send(err.message)
+       
+         return res.status(500).json(handleError(err))
     }
 })
 router.post('/autocomplete_location',auth,async (req,res)=> {
@@ -174,8 +173,8 @@ router.post('/autocomplete_location',auth,async (req,res)=> {
         
         return res.json(list_inv)
     }catch(err){
-        console.log(err.message);
-        res.status(500).send(err.message)
+       
+         return res.status(500).json(handleError(err))
     }
 })
 router.post('/list_inventory',auth,async (req,res)=> {
@@ -190,8 +189,8 @@ router.post('/list_inventory',auth,async (req,res)=> {
         console.log(list_inv)
         return res.json(list_inv)
     }catch(err){
-        console.log(err.message);
-        res.status(500).send(err.message)
+       
+         return res.status(500).json(handleError(err))
     }
 })
 module.exports = router; 

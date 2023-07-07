@@ -17,6 +17,10 @@ const StockTaskSchema = new mongoose.Schema({
         type:mongoose.Schema.Types.ObjectId,
         ref:'stocks',
     },
+    user:{
+        type:mongoose.Schema.Types.ObjectId,
+        ref:'user',
+    },
     invoice:{
         type:mongoose.Schema.Types.ObjectId,
         ref:'invoice',

@@ -19,6 +19,7 @@ const Zone = require('../../models/Zone')
 const Inbox = require('../../models/Inbox') 
 const Note = require('../../models/Notes') 
 const StockTask = require('../../models/StockTask') 
+const { handleError } = require('../../utils/handleError')
 
 router.post('/will_exp_stock',auth,async (req,res)=> {
     const { range = 30,user } = req.body;
@@ -37,7 +38,9 @@ router.post('/will_exp_stock',auth,async (req,res)=> {
       return res.json(expiringStocks)
     } catch (error) {
     
-       res.status(500).send(error.message)
+       
+       
+       return res.status(500).json(handleError(err))
     }
 
 })
@@ -52,7 +55,9 @@ router.post('/latest_import', auth,async (req, res) => {
    
     res.status(200).json(list);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+   
+       
+     return res.status(500).json(handleError(err))
   }
 });
 router.post('/latest_export',auth, async (req, res) => {
@@ -67,7 +72,8 @@ router.post('/latest_export',auth, async (req, res) => {
    
     res.status(200).json(list);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+       
+     return res.status(500).json(handleError(err))
   }
 });
 
@@ -150,11 +156,14 @@ router.post('/report_history',auth,async (req,res)=> {
         break;
     }
     
-    let matchQuery =  { 
-     
-        create_date: { $gte: dateFilter },
-      
-      } 
+    let matchQuery =  {
+      is_active: true,
+      live_date: { $gte: dateFilter }, // Check if live_date is less than or equal to the end date
+      $or: [
+        { out_date: { $gte: dateFilter } }, // Check if out_date is greater than the end date
+        { out_date: null } // Include stocks with no out_date (still in the warehouse)
+      ]
+    }
     if(userId){
         matchQuery =  { 
             ...matchQuery,
@@ -162,12 +171,9 @@ router.post('/report_history',auth,async (req,res)=> {
             
           } 
     }
-    console.log("==>")
-    console.log(matchQuery)
+
     if(searchText){
         matchQuery = {...matchQuery, $or: [
-            { lot_number: { $regex: searchText, $options: 'i' } },
-            { product_name: { $regex: searchText, $options: 'i' } },
             { name: { $regex: searchText, $options: 'i' } }
           ]}
     }
@@ -180,8 +186,8 @@ router.post('/report_history',auth,async (req,res)=> {
     {
         $group: {
         _id: {
-            month: { $month: "$create_date" },
-            year: { $year: "$create_date" }
+            month: { $month: "$live_date" },
+            year: { $year: "$live_date" }
         },
         total: { $sum: "$current_amount" },
         count: { $sum: 1 }
@@ -204,7 +210,7 @@ router.post('/report_history',auth,async (req,res)=> {
     }
     ];
 
-    const stats = await StocksHistory.aggregate(pipeline);
+    const stats = await Stocks.aggregate(pipeline);
     console.log(stats)
     return res.json(stats)
 })
@@ -554,8 +560,9 @@ router.post('/report_most_import', auth, async (req, res) => {
     
       return res.json(result);
   } catch (error) {
-      res.status(500).send(error.message)
-  }
+
+       
+     return res.status(500).json(handleError(err))  }
 });
 
 router.post('/report_most_export', auth, async (req, res) => {
@@ -627,8 +634,9 @@ router.post('/report_most_export', auth, async (req, res) => {
     return res.json(result);
   } catch (error) {
     
-    return res.status(500).json({error:error});
-  }
+
+       
+     return res.status(500).json(handleError(err))  }
   
 });
 
@@ -676,8 +684,9 @@ router.post('/longest_stock', auth, async (req, res) => {
     return res.json(result);
   } catch (error) {
     
-    res.status(500).send(error.message)
-  }
+
+       
+     return res.status(500).json(handleError(err))  }
   
 })
 router.post('/report_data', auth,async (req,res)=> {
@@ -766,8 +775,8 @@ router.post('/report_data', auth,async (req,res)=> {
         return res.status(400).send('Data Error')
 
     }catch(err){
-        console.log(err.message);
-        res.status(500).send(err.message)
+       
+       return res.status(500).json(handleError(err))
     }
 })
 router.get('/report_diff_history',async (req,res)=> {
@@ -813,8 +822,8 @@ router.get('/report_diff_history',async (req,res)=> {
     })
 
   }catch(err){
-      console.log(err.message);
-      res.status(500).send(err.message)
+       
+     return res.status(500).json(handleError(err))
   }
 })
 
@@ -852,8 +861,8 @@ router.get('/get_report_from_date', async (req, res) => {
 
     return res.status(200).send(reportData);
   } catch (err) {
-    console.log(err.message);
-    res.status(500).send(err.message);
+       
+     return res.status(500).json(handleError(err))
   }
 });
 
@@ -886,8 +895,9 @@ router.post('/how_many_zone_user_current_use',auth, async (req, res) => {
 
     res.status(200).json({ zoneCount });
   } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
+
+       
+     return res.status(500).json(handleError(err))  }
 });
 
 router.post('/stock_on_hands', auth, async (req, res) => {
@@ -973,6 +983,15 @@ router.post('/stock_on_hands', auth, async (req, res) => {
           as: 'zoneData'
         }
       },
+      
+      {
+        $lookup: {
+          from: "pallets", // Replace with the actual name of the pallets collection
+          localField: "zoneData.pallet",
+          foreignField: "_id",
+          as: "palletData",
+        }
+      },
       {
         $group: {
           _id: '$inventoryData',
@@ -985,11 +1004,19 @@ router.post('/stock_on_hands', auth, async (req, res) => {
                   then: null,
                   else: { $arrayElemAt: ['$zoneData', 0] }
                 }
-              }
+              },
+              pallet: {
+                $cond: {
+                  if: { $eq: [{ $size: '$palletData' }, 0] },
+                  then: null,
+                  else: { $arrayElemAt: ['$palletData', 0] }
+                }
+              },
             }
           }
         }
       },
+    
       {
         $project: {
           inventory: '$_id',
@@ -999,7 +1026,8 @@ router.post('/stock_on_hands', auth, async (req, res) => {
         }
       },
       {
-        $sort: { 'inventory.invoice.start_date': 1,'inventory.name': 1}
+        // $sort: { 'inventory.invoice.start_date': 1,'inventory.name': 1}
+          $sort: { 'inventory.invoice.start_date': 1,'inventory.create_date': 1}
       }
     ]);
 
@@ -1035,8 +1063,8 @@ router.post('/stock_on_hands', auth, async (req, res) => {
       // usage: count[0]?.total || 0
     });
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server error');
+       
+     return res.status(500).json(handleError(err))
   }
 });
 router.post('/stock_on_hands_2', auth, async (req, res) => {
@@ -1103,8 +1131,8 @@ router.post('/stock_on_hands_2', auth, async (req, res) => {
       task: taskList
     });
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server error');
+       
+     return res.status(500).json(handleError(err))
   }
 });
 

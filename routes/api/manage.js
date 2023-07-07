@@ -27,7 +27,8 @@ const Location = require('../../models/Location')
 const StockTask = require('../../models/StockTask')
 
 const Product = require('../../models/Product')
-const {calculate_amount_by_sub_amount} = require('../../utils/lib')
+const { calculate_amount_by_sub_amount } = require('../../utils/lib')
+const { handleError } = require('../../utils/handleError')
 
 router.post('/socket_io_to_admin', auth, async (req, res) => {
 
@@ -38,12 +39,12 @@ router.post('/socket_io_to_admin', auth, async (req, res) => {
 
 
     } catch (err) {
-        console.log(err.message);
-        res.status(500).send(err.message)
+
+         return res.status(500).json(handleError(err))
     }
 })
 router.post('/socket_io_to_client', auth, async (req, res) => {
-        const {user} = req.body
+    const { user } = req.body
     try {
         const io = req.app.get('socketio');
 
@@ -53,8 +54,8 @@ router.post('/socket_io_to_client', auth, async (req, res) => {
 
 
     } catch (err) {
-        console.log(err.message);
-        res.status(500).send(err.message)
+
+         return res.status(500).json(handleError(err))
     }
 })
 router.post('/create_inbox', [auth, upload_inboxs.array('files')], async (req, res) => {
@@ -120,8 +121,8 @@ router.post('/create_inbox', [auth, upload_inboxs.array('files')], async (req, r
         return res.status(500).send('need body')
 
     } catch (err) {
-        console.log(err.message);
-        res.status(500).send(err.message)
+
+         return res.status(500).json(handleError(err))
     }
 })
 
@@ -142,8 +143,8 @@ router.post('/list_inbox', auth, async (req, res) => {
 
 
     } catch (err) {
-        console.log(err.message);
-        res.status(500).send(err.message)
+
+         return res.status(500).json(handleError(err))
     }
 })
 router.post('/list_customer_inbox', auth, async (req, res) => {
@@ -164,8 +165,8 @@ router.post('/list_customer_inbox', auth, async (req, res) => {
 
 
     } catch (err) {
-        console.log(err.message);
-        res.status(500).send(err.message)
+
+         return res.status(500).json(handleError(err))
     }
 })
 router.post('/list_customer_send_inbox', auth, async (req, res) => {
@@ -185,8 +186,8 @@ router.post('/list_customer_send_inbox', auth, async (req, res) => {
 
 
     } catch (err) {
-        console.log(err.message);
-        res.status(500).send(err.message)
+
+         return res.status(500).json(handleError(err))
     }
 })
 
@@ -199,8 +200,8 @@ router.post('/get_inbox', auth, async (req, res) => {
         return res.json(inbox)
 
     } catch (err) {
-        console.log(err.message);
-        res.status(500).send(err.message)
+
+         return res.status(500).json(handleError(err))
     }
 })
 
@@ -212,8 +213,8 @@ router.post('/create_category', auth, async (req, res) => {
         res.json(cat)
 
     } catch (err) {
-        console.log(err.message);
-        res.status(500).send(err.message)
+
+         return res.status(500).json(handleError(err))
     }
 })
 router.post('/add_note_to_stock', [auth, upload_notes.array('images')], async (req, res) => {
@@ -227,7 +228,7 @@ router.post('/add_note_to_stock', [auth, upload_notes.array('images')], async (r
         }))
         console.log(note)
         note.stock = stock_id
-      
+
         const stock = await Stocks.findOne({ _id: stock_id }).populate('product')
         console.log(stock)
         if (stock.notes) {
@@ -242,8 +243,8 @@ router.post('/add_note_to_stock', [auth, upload_notes.array('images')], async (r
         return res.json(note)
 
     } catch (err) {
-        console.log(err.message);
-        res.status(500).send(err.message)
+
+         return res.status(500).json(handleError(err))
     }
 })
 router.post('/get_notes_from_user', auth, async (req, res) => {
@@ -260,8 +261,8 @@ router.post('/get_notes_from_user', auth, async (req, res) => {
         })
 
     } catch (err) {
-        console.log(err.message);
-        res.status(500).send(err.message)
+
+         return res.status(500).json(handleError(err))
     }
 })
 router.post('/get_note', auth, async (req, res) => {
@@ -272,8 +273,8 @@ router.post('/get_note', auth, async (req, res) => {
         console.log(note)
         return res.json(note)
     } catch (err) {
-        console.log(err.message);
-        res.status(500).send(err.message)
+
+         return res.status(500).json(handleError(err))
     }
 })
 
@@ -324,8 +325,9 @@ router.post('/update_note', [auth, upload_notes.array('images')], auth, async (r
         await note.save()
         return res.json(note)
     } catch (err) {
-        console.log(err.message);
-        res.status(500).send(err.message)
+
+
+         return res.status(500).json(handleError(err))
     }
 })
 
@@ -376,8 +378,8 @@ router.post('/update_note_v2', [auth, upload_notes.array('images')], auth, async
         await note.save()
         return res.json(note)
     } catch (err) {
-        console.log(err.message);
-        res.status(500).send(err.message)
+
+         return res.status(500).json(handleError(err))
     }
 })
 
@@ -390,8 +392,8 @@ router.post('/create_location', auth, async (req, res) => {
         res.json(loc)
 
     } catch (err) {
-        console.log(err.message);
-        res.status(500).send(err.message)
+
+         return res.status(500).json(handleError(err))
     }
 })
 
@@ -409,8 +411,8 @@ router.post('/list_location', auth, async (req, res) => {
         })
 
     } catch (err) {
-        console.log(err.message);
-        res.status(500).send(err.message)
+
+         return res.status(500).json(handleError(err))
     }
 })
 
@@ -429,8 +431,8 @@ router.post('/import_inventory', [auth, upload_inventories.array('images')], asy
         res.json(inv)
 
     } catch (err) {
-        console.log(err.message);
-        res.status(500).send(err.message)
+
+         return res.status(500).json(handleError(err))
     }
 })
 router.post('/update_inventory', [auth, upload_inventories.array('images')], async (req, res) => {
@@ -489,8 +491,8 @@ router.post('/update_inventory', [auth, upload_inventories.array('images')], asy
 
 
     } catch (err) {
-        console.log(err.message);
-        res.status(500).send(err.message)
+
+         return res.status(500).json(handleError(err))
     }
 })
 router.post('/inventory_waiting', auth, async (req, res) => {
@@ -505,8 +507,8 @@ router.post('/inventory_waiting', auth, async (req, res) => {
         res.json(list)
 
     } catch (err) {
-        console.log(err.message);
-        res.status(500).send(err.message)
+
+         return res.status(500).json(handleError(err))
     }
 })
 router.post('/get_inventory', auth, async (req, res) => {
@@ -525,21 +527,22 @@ router.post('/get_inventory', auth, async (req, res) => {
 router.post('/get_invoice_from_inventory', auth, async (req, res) => {
     const { inv_id } = req.body;
     try {
-        
+
         const inv = await Invoice.findOne({ 'import_stock_list.inventory': inv_id })
 
         res.json(inv)
 
     } catch (err) {
-        console.log(err.message);
-        res.status(500).send(err.message)
+
+
+         return res.status(500).json(handleError(err))
     }
 })
 
 router.post('/list_inventory', auth, async (req, res) => {
     const { user = null, search, is_in_stock, page = 1, limit = 10, is_active = true } = req.body;
     try {
-        var query = { is_active:true};
+        var query = { is_active: true };
         if (user) query.user = user;
         if (is_in_stock !== undefined) query.is_in_stock = is_in_stock;
         if (search) {
@@ -561,35 +564,36 @@ router.post('/list_inventory', auth, async (req, res) => {
         })
 
     } catch (err) {
-        console.log(err.message);
-        res.status(500).send(err.message)
+
+
+         return res.status(500).json(handleError(err))
     }
 })
 router.post('/list_stocks', auth, async (req, res) => {
-    const { user = null, search, status, page = 1, limit = 10, is_expire = false, zone=null,sort=null } = req.body;
+    const { user = null, search, status, page = 1, limit = 10, is_expire = false, zone = null, sort = null } = req.body;
     try {
-        var sort_query = {'zone':1}
-        if(sort === 'create_date'){
-            sort_query = {'create_date':-1}
+        var sort_query = { 'zone': 1 }
+        if (sort === 'create_date') {
+            sort_query = { 'create_date': -1 }
         }
-        else if(sort === 'name'){
-            sort_query = {'name':1}
+        else if (sort === 'name') {
+            sort_query = { 'name': 1 }
         }
-        else{
-            sort_query = {'zone':1}
+        else {
+            sort_query = { 'zone': 1 }
         }
         var query = { is_active: true, };
         if (user !== null) query.user = user;
         if (zone !== null) {
-           
-            const zoneList = await Zone.find({main: {$regex : zone}})
+
+            const zoneList = await Zone.find({ main: { $regex: zone } })
             query.zone = { $in: zoneList.map(item => item._id) }
-        } 
+        }
         if (status !== undefined) {
-            if(status !== 'all'){
+            if (status !== 'all') {
                 query.status = status;
             }
-            else{
+            else {
                 delete query['is_active']
             }
         }
@@ -622,21 +626,21 @@ router.post('/list_stocks', auth, async (req, res) => {
         })
 
     } catch (err) {
-        console.log(err.message);
-        res.status(500).send(err.message)
+
+         return res.status(500).json(handleError(err))
     }
 })
 router.post('/list_stocks_for_qrcode', auth, async (req, res) => {
-    const { user = null, search, status, page = 1, limit = 10, is_expire = false, zone=null } = req.body;
+    const { user = null, search, status, page = 1, limit = 10, is_expire = false, zone = null } = req.body;
     try {
         var query = { is_active: true };
         if (user !== null) query.user = user;
         if (zone !== null) {
-            const zoneList = await Zone.find({ main: { $regex : zone } });
+            const zoneList = await Zone.find({ main: { $regex: zone } });
             query.zone = { $in: zoneList.map(item => item._id) };
-        } 
+        }
         if (status !== undefined) {
-            if(status !== 'all'){
+            if (status !== 'all') {
                 query.status = status;
             } else {
                 delete query['is_active'];
@@ -654,68 +658,68 @@ router.post('/list_stocks_for_qrcode', auth, async (req, res) => {
             const expiringInventory = await Inventory.find({ exp_date: { $lt: new Date() } });
             query.inventory = { $in: expiringInventory.map(item => item._id) };
         }
-        
+
         // Aggregation pipeline
         const pipeline = [
             { $match: query },
             {
-              $group: {
-                _id: { lot_number: "$lot_number", product: "$product" },
-                count: { $sum: 1 },
-                stocks: { $push: "$$ROOT" }
-              }
+                $group: {
+                    _id: { lot_number: "$lot_number", product: "$product" },
+                    count: { $sum: 1 },
+                    stocks: { $push: "$$ROOT" }
+                }
             },
-          
+
             {
-              $unwind: "$stocks"
-            },
-            {
-              $lookup: {
-                from: "zones",
-                localField: "stocks.zone",
-                foreignField: "_id",
-                as: "stocks.zone"
-              }
-            },
-            {
-              $unwind: "$stocks.zone"
+                $unwind: "$stocks"
             },
             {
                 $lookup: {
-                  from: "products",
-                  localField: "stocks.product",
-                  foreignField: "_id",
-                  as: "stocks.product"
+                    from: "zones",
+                    localField: "stocks.zone",
+                    foreignField: "_id",
+                    as: "stocks.zone"
                 }
-              },
-              {
-                $unwind: "$stocks.product"
-              },
+            },
             {
-              $group: {
-                _id: { lot_number: "$_id.lot_number", product: "$_id.product" },
-                count: { $first: "$count" },
-                stocks: { $push: "$stocks" }
-              }
+                $unwind: "$stocks.zone"
+            },
+            {
+                $lookup: {
+                    from: "products",
+                    localField: "stocks.product",
+                    foreignField: "_id",
+                    as: "stocks.product"
+                }
+            },
+            {
+                $unwind: "$stocks.product"
+            },
+            {
+                $group: {
+                    _id: { lot_number: "$_id.lot_number", product: "$_id.product" },
+                    count: { $first: "$count" },
+                    stocks: { $push: "$stocks" }
+                }
             },
             {
                 $sort: { "stocks.product.create_date": -1 }
-              },
-            {
-              $skip: (page - 1) * limit
             },
             {
-              $limit: limit
+                $skip: (page - 1) * limit
             },
             {
-              $sort: { create_date: -1 }
+                $limit: limit
+            },
+            {
+                $sort: { create_date: -1 }
             }
-          ];
-          
+        ];
+
 
         const list = await Stocks.aggregate(pipeline).allowDiskUse(true);
         const total = await Stocks.countDocuments(query);
-        
+
         console.log(list);
         res.json({
             page: page,
@@ -723,12 +727,12 @@ router.post('/list_stocks_for_qrcode', auth, async (req, res) => {
             total: total
         });
     } catch (err) {
-        console.log(err.message);
-        res.status(500).send(err.message);
+
+         return res.status(500).json(handleError(err))
     }
 
 });
-  
+
 
 router.post('/list_stocks_by_name', auth, async (req, res) => {
     const { user, search, status, page = 1, limit = 10 } = req.body;
@@ -794,8 +798,8 @@ router.post('/list_stocks_by_name', auth, async (req, res) => {
         res.json(list)
 
     } catch (err) {
-        console.log(err.message);
-        res.status(500).send(err.message)
+
+         return res.status(500).json(handleError(err))
     }
 })
 router.post('/list_stock_for_export', auth, async (req, res) => {
@@ -837,7 +841,7 @@ router.post('/list_stock_for_export', auth, async (req, res) => {
         }
 
         console.log(query);
-       
+
         // Aggregation pipeline to group by zone
         const pipeline = [
             { $match: query },
@@ -846,19 +850,19 @@ router.post('/list_stock_for_export', auth, async (req, res) => {
             { $limit: limit },
             {
                 $lookup: {
-                  from: "products",
-                  localField: "product",
-                  foreignField: "_id",
-                  as: "product"
+                    from: "products",
+                    localField: "product",
+                    foreignField: "_id",
+                    as: "product"
                 }
-              },
-              {
+            },
+            {
                 $group: {
                     _id: "$zone",
                     stocks: { $push: "$$ROOT" }
                 }
             },
-       
+
             {
                 $lookup: {
                     from: "zones",
@@ -875,7 +879,7 @@ router.post('/list_stock_for_export', auth, async (req, res) => {
                     stocks: 1
                 }
             },
-           
+
         ];
 
         // Fetching the grouped items by zone
@@ -893,8 +897,8 @@ router.post('/list_stock_for_export', auth, async (req, res) => {
             total: total
         });
     } catch (err) {
-        console.log(err.message);
-        res.status(500).send(err.message);
+
+         return res.status(500).json(handleError(err))
     }
 });
 
@@ -963,8 +967,8 @@ router.post('/list_stocks_by_product', auth, async (req, res) => {
             total: total,
         });
     } catch (err) {
-        console.log(err.message);
-        res.status(500).send(err.message);
+
+         return res.status(500).json(handleError(err))
     }
 });
 
@@ -979,24 +983,24 @@ router.post('/list_current_stocks', auth, async (req, res) => {
         res.json(list)
 
     } catch (err) {
-        console.log(err.message);
-        res.status(500).send(err.message)
+
+         return res.status(500).json(handleError(err))
     }
 })
 
 router.post('/list_current_stock_by_array_id', auth, async (req, res) => {
     try {
-        const {list} = req.body
-        var query = { is_active: true , _id: { $in: list } };
-        
+        const { list } = req.body
+        var query = { is_active: true, _id: { $in: list } };
+
 
         const listStock = await Stocks.find(query).populate({ path: 'inventory', populate: { path: 'user', model: 'user' } }).populate('product').populate('zone').sort({ create_date: -1 });
         console.log(listStock)
         res.json(listStock)
 
     } catch (err) {
-        console.log(err.message);
-        res.status(500).send(err.message)
+
+         return res.status(500).json(handleError(err))
     }
 })
 router.post('/list_zone', auth, async (req, res) => {
@@ -1070,15 +1074,15 @@ router.post('/list_zone', auth, async (req, res) => {
         res.json(result2)
 
     } catch (err) {
-        console.log(err.message);
-        res.status(500).send(err.message)
+
+         return res.status(500).json(handleError(err))
     }
 })
 router.post('/list_zone_for_choose', auth, async (req, res) => {
     const { main, sort } = req.body;
     try {
-      
-        let query = {is_active:true}
+
+        let query = { is_active: true }
         if (main) query.main = main
 
         const result2 = await Zone.aggregate([
@@ -1098,16 +1102,16 @@ router.post('/list_zone_for_choose', auth, async (req, res) => {
         res.json(result2)
 
     } catch (err) {
-        console.log(err.message);
-        res.status(500).send(err.message)
+
+         return res.status(500).json(handleError(err))
     }
 })
 router.post('/list_zone_for_manage', auth, async (req, res) => {
     const { search } = req.body;
     try {
-      
+
         let query = {}
-        if(search){
+        if (search) {
             const searchRegex = new RegExp(search, 'i');
             query.$or = [
                 { main: { $regex: searchRegex } },
@@ -1122,7 +1126,7 @@ router.post('/list_zone_for_manage', auth, async (req, res) => {
             {
                 $sort:
                 {
-                    is_active:-1
+                    is_active: -1
                 }
             }
         ])
@@ -1130,8 +1134,9 @@ router.post('/list_zone_for_manage', auth, async (req, res) => {
         res.json(result2)
 
     } catch (err) {
-        console.log(err.message);
-        res.status(500).send(err.message)
+
+
+         return res.status(500).json(handleError(err))
     }
 })
 
@@ -1145,8 +1150,8 @@ router.post('/zone_with_stock', auth, async (req, res) => {
         res.json(list)
 
     } catch (err) {
-        console.log(err.message);
-        res.status(500).send(err.message)
+
+         return res.status(500).json(handleError(err))
     }
 })
 
@@ -1162,8 +1167,9 @@ router.post('/invoice_stocks_out', auth, async (req, res) => {
     try {
 
     } catch (err) {
-        console.log(err.message);
-        res.status(500).send(err.message)
+
+
+         return res.status(500).json(handleError(err))
     }
 })
 router.post('/import_to_stocks_approve', auth, async (req, res) => {
@@ -1208,7 +1214,7 @@ router.post('/import_to_stocks_approve', auth, async (req, res) => {
 
             return res.json(invoice)
         }
-        else{
+        else {
             // const promises = invoice.import_list.map(async (invInfo) => {
             //     const inv = new Inventory();
             //     inv.amount = invInfo.amount;
@@ -1228,18 +1234,18 @@ router.post('/import_to_stocks_approve', auth, async (req, res) => {
             //     await inv.save();
             //     invInfo.inventory = inv;
             //   });
-              
+
             // await Promise.all(promises);
             const listInv = []
             for (let i = 0; i < invoice.import_list.length; i++) {
                 const invInfo = invoice.import_list[i]
-    
+
                 const inv = new Inventory()
                 inv.amount = invInfo.amount
                 inv.current_amount = invInfo.amount
                 inv.total_sub_unit = invInfo.sub_amount
                 inv.current_sub_amount = invInfo.sub_amount
-    
+
                 inv.user = invoice.user
                 inv.product = invInfo.product
                 inv.name = invInfo.name
@@ -1251,9 +1257,9 @@ router.post('/import_to_stocks_approve', auth, async (req, res) => {
                 inv.exp_date = invInfo.exp_date
                 inv.invoice = invoice
                 listInv.push(inv)
-               
+
             }
-          
+
             await Promise.all(listInv.map(async (inv) => {
                 await inv.save()
             }))
@@ -1264,22 +1270,22 @@ router.post('/import_to_stocks_approve', auth, async (req, res) => {
                     user: req.user.id,
                 },
                 ...invoice.history,
-    
+
             ]
             invoice.status = 'pending'
             invoice.import_list = invoice.import_list.map((importItem, index) => {
                 return {
-                  ...importItem,
-                  inventory: listInv[index]._id
+                    ...importItem,
+                    inventory: listInv[index]._id
                 };
-              });
-              console.log(invoice.import_list)
+            });
+            console.log(invoice.import_list)
             await invoice.save()
-       
+
             const by_user = await User.findById(req.user.id)
-    
+
             send_noti(3, [invoice.user], 'นำสินค้าเข้าคลัง', 'สินค้า ถูกนำเข้าคลังสินค้าเรียบร้อยเเล้ว');
-    
+
             const alert = new Notification({
                 invoice: invoice,
                 user: invoice.user,
@@ -1294,11 +1300,12 @@ router.post('/import_to_stocks_approve', auth, async (req, res) => {
             io.to(invoice.user.toString()).emit('action', { type: 'new_alert', data: alert });
             res.json(invoice)
         }
-        
+
 
     } catch (err) {
-        console.log(err.message);
-        res.status(500).send(err.message)
+
+
+         return res.status(500).json(handleError(err))
     }
 })
 router.post('/update_invoice_import_list_request_status', auth, async (req, res) => {
@@ -1309,24 +1316,25 @@ router.post('/update_invoice_import_list_request_status', auth, async (req, res)
         const invoice = await Invoice.findById(invoice_id)
         invoice.import_list = list
 
-            let total = 0
-            let total_sub = 0
-            for (let j = 0; j < invoice.import_list.length; j++) {
-              const inv = invoice.import_list[j];
-              total += inv.amount
-              total_sub += inv.sub_amount
-            }
-            invoice.amount = total
-            invoice.sub_amount = total_sub
-            await invoice.save()
-        
-  
+        let total = 0
+        let total_sub = 0
+        for (let j = 0; j < invoice.import_list.length; j++) {
+            const inv = invoice.import_list[j];
+            total += inv.amount
+            total_sub += inv.sub_amount
+        }
+        invoice.amount = total
+        invoice.sub_amount = total_sub
+        await invoice.save()
+
+
 
         res.json(invoice)
 
     } catch (err) {
-        console.log(err.message);
-        res.status(500).send(err.message)
+
+
+         return res.status(500).json(handleError(err))
     }
 })
 router.post('/update_invoice_import_list_pending_status', auth, async (req, res) => {
@@ -1340,7 +1348,7 @@ router.post('/update_invoice_import_list_pending_status', auth, async (req, res)
         for (let i = 0; i < list.length; i++) {
             const item = list[i];
             amount += item.amount
-            sub_amount += item.sub_amount ? item.sub_amount:0
+            sub_amount += item.sub_amount ? item.sub_amount : 0
             if (item.inventory) {
                 const inv = await Inventory.findById(item.inventory)
                 inv.lot_number = item.lot_number
@@ -1349,25 +1357,25 @@ router.post('/update_invoice_import_list_pending_status', auth, async (req, res)
                 inv.current_amount = item.amount
                 inv.amount = item.amount
 
-                if(item.sub_amount){
+                if (item.sub_amount) {
                     inv.current_sub_amount = item.sub_amount
                 }
-                else{
+                else {
                     inv.current_sub_amount = 0
                 }
                 await inv.save()
-                
+
             }
             else {
-                
+
                 const inv = new Inventory()
                 inv.amount = item.amount
                 inv.current_amount = item.amount
-               
-                if(item.sub_unit){
+
+                if (item.sub_unit) {
                     inv.total_sub_unit = item.sub_amount
                     inv.current_sub_amount = item.sub_amount
-                } 
+                }
                 else {
                     inv.total_sub_unit = 0
                     inv.current_sub_amount = 0
@@ -1408,13 +1416,14 @@ router.post('/update_invoice_import_list_pending_status', auth, async (req, res)
         res.json(invoice)
 
     } catch (err) {
-        console.log(err.message);
-        res.status(500).send(err.message)
+
+
+         return res.status(500).json(handleError(err))
     }
 })
 
 router.post('/import_product_from_user', [auth, upload_invoices.array('files')], async (req, res) => {
-    const { list, remark, driver = '', car_code = '', start_date,user=null } = req.body;
+    const { list, remark, driver = '', car_code = '', start_date, user = null } = req.body;
     try {
         console.log(list)
         const invoice = new Invoice()
@@ -1422,12 +1431,12 @@ router.post('/import_product_from_user', [auth, upload_invoices.array('files')],
         let total_amount = 0
         let total_sub_amount = 0
         for (let i = 0; i < list.length; i++) {
-            const item = JSON.parse( list[i]);
+            const item = JSON.parse(list[i]);
             newArray.push(item)
             const amount = parseInt(item.amount)
             const sub_amount = parseInt(item.sub_amount)
             total_amount += amount
-             total_sub_amount += sub_amount ? sub_amount:0
+            total_sub_amount += sub_amount ? sub_amount : 0
         }
         invoice.import_list = newArray
 
@@ -1435,7 +1444,7 @@ router.post('/import_product_from_user', [auth, upload_invoices.array('files')],
         invoice.driver = driver
         invoice.car_code = car_code
         invoice.start_date = start_date,
-        invoice.user = user ? user : req.user.id
+            invoice.user = user ? user : req.user.id
         invoice.status = 'request'
         invoice.amount = total_amount
         invoice.sub_amount = total_sub_amount
@@ -1449,139 +1458,141 @@ router.post('/import_product_from_user', [auth, upload_invoices.array('files')],
         }
         await invoice.save()
         const by_user = await User.findById(req.user.id).lean();
-  
+
         send_noti(3, [invoice.user], 'นำสินค้าเข้าคลัง', 'เตรียมนำเข้าคลังสินค้า');
-    
+
         const alert = new Notification({
-          invoice: invoice,
-          user: invoice.user,
-          by_user: by_user,
-          type: 'import',
-          title: 'เตรียมนำเข้าคลังสินค้า',
-          detail: 'ข้อมูลสินค้าถูกนำเข้าคลังสินค้าเรียบร้อยแล้ว',
+            invoice: invoice,
+            user: invoice.user,
+            by_user: by_user,
+            type: 'import',
+            title: 'เตรียมนำเข้าคลังสินค้า',
+            detail: 'ข้อมูลสินค้าถูกนำเข้าคลังสินค้าเรียบร้อยแล้ว',
         });
         await alert.save();
-    
+
         const io = req.app.get('socketio');
         io.to(invoice.user.toString()).emit('action', { type: 'new_alert', data: alert });
-    
+
         console.log(invoice)
         res.status(200).send(invoice)
     } catch (err) {
-        console.log(err.message);
-        res.status(500).send(err.message)
+
+
+         return res.status(500).json(handleError(err))
     }
 })
 router.post('/import_to_stocks_by_invoice', auth, async (req, res) => {
     const { list, invoice_id } = req.body;
     try {
-      const invoice = await Invoice.findById(invoice_id);
-  
-      const modifiedInventoryItems = [];
-      let total_amount = 0;
-      const newArray = [];
-      const stocksToSave = [];
-    
-      for (const info of list) {
-        const { amount, sub_amount, inventory, zone } = info;
-  
-        const inv = await Inventory.findById(inventory).populate('product').lean();
-  
-        if (amount === inv.current_amount && sub_amount === inv.current_sub_amount) {
-          inv.current_amount = 0;
-          inv.current_sub_amount = 0;
-          inv.is_in_stock = true;
-        } else {
-          inv.current_amount -= amount;
-          inv.current_sub_amount -= sub_amount;
-          inv.is_in_stock = false;
+        const invoice = await Invoice.findById(invoice_id);
+
+        const modifiedInventoryItems = [];
+        let total_amount = 0;
+        const newArray = [];
+        const stocksToSave = [];
+
+        for (const info of list) {
+            const { amount, sub_amount, inventory, zone } = info;
+
+            const inv = await Inventory.findById(inventory).populate('product').lean();
+
+            if (amount === inv.current_amount && sub_amount === inv.current_sub_amount) {
+                inv.current_amount = 0;
+                inv.current_sub_amount = 0;
+                inv.is_in_stock = true;
+            } else {
+                inv.current_amount -= amount;
+                inv.current_sub_amount -= sub_amount;
+                inv.is_in_stock = false;
+            }
+
+            total_amount += amount;
+
+            const z = await Zone.findOne({ _id: zone }).lean();
+
+            const stock = new Stocks();
+            stock.zone = z;
+            stock.name = inv.name;
+            stock.product_code = inv.product_code;
+            stock.lot_number = inv.lot_number;
+            stock.unit = inv.unit;
+            stock.inventory = inv;
+            stock.product = inv.product;
+            if (inv.product.sub_unit) {
+
+                stock.is_sub = true
+                stock.sub_unit = inv.product.sub_unit
+                if (sub_amount > 0) stock.current_sub_amount = sub_amount;
+
+            }
+            stock.live_date = invoice.start_date
+
+            stock.current_amount = amount;
+            stock.amount = amount;
+            stock.user = invoice.user;
+            stock.status = 'warehouse';
+            stocksToSave.push(stock);
+
+
+
+            newArray.push({
+                ...info,
+                stock,
+                product: inv.product,
+            });
+
+            modifiedInventoryItems.push({
+                updateOne: {
+                    filter: { _id: inventory },
+                    update: inv,
+                },
+            });
         }
-  
-        total_amount += amount;
-  
-        const z = await Zone.findOne({ _id: zone }).lean();
-  
-        const stock = new Stocks();
-        stock.zone = z;
-        stock.name = inv.name;
-        stock.product_code = inv.product_code;
-        stock.lot_number = inv.lot_number;
-        stock.unit = inv.unit;
-        stock.inventory = inv;
-        stock.product = inv.product;
-        if (inv.product.sub_unit) {
+        await Stocks.insertMany(stocksToSave);
+        await Promise.all([
+            Invoice.updateOne({ _id: invoice_id }, {
+                $push: {
+                    history: {
+                        $each: [
+                            { status: 'accept', user: req.user.id },
+                        ],
+                        $position: 0,
+                    },
+                },
+                $set: {
+                    import_stock_list: newArray,
+                    status: 'accept',
+                },
+            }),
+            Inventory.bulkWrite(modifiedInventoryItems),
+        ]);
 
-            stock.is_sub = true
-            stock.sub_unit = inv.product.sub_unit
-            if (sub_amount > 0) stock.current_sub_amount = sub_amount;
+        const by_user = await User.findById(req.user.id).lean();
 
-        }
-        stock.live_date = invoice.start_date
-        
-        stock.current_amount = amount;
-        stock.amount = amount;
-        stock.user = invoice.user;
-        stock.status = 'warehouse';
-        stocksToSave.push(stock);
-        
-        
+        send_noti(3, [invoice.user], 'นำสินค้าเข้าคลัง', 'สินค้า ถูกนำเข้าคลังสินค้าเรียบร้อยแล้ว');
 
-        newArray.push({
-          ...info,
-          stock,
-          product: inv.product,
+        const alert = new Notification({
+            invoice: invoice,
+            user: invoice.user,
+            by_user: by_user,
+            type: 'import',
+            title: 'นำสินค้าเข้าคลัง',
+            detail: 'สินค้าถูกนำเข้าคลังสินค้าเรียบร้อยแล้ว',
         });
-  
-        modifiedInventoryItems.push({
-          updateOne: {
-            filter: { _id: inventory },
-            update: inv,
-          },
-        });
-      }
-    await Stocks.insertMany(stocksToSave);
-    await Promise.all([
-        Invoice.updateOne({ _id: invoice_id }, {
-          $push: {
-            history: {
-              $each: [
-                { status: 'accept', user: req.user.id },
-              ],
-              $position: 0,
-            },
-          },
-          $set: {
-            import_stock_list: newArray,
-            status: 'accept',
-          },
-        }),
-        Inventory.bulkWrite(modifiedInventoryItems),
-      ]);
-  
-      const by_user = await User.findById(req.user.id).lean();
-  
-      send_noti(3, [invoice.user], 'นำสินค้าเข้าคลัง', 'สินค้า ถูกนำเข้าคลังสินค้าเรียบร้อยแล้ว');
-  
-      const alert = new Notification({
-        invoice: invoice,
-        user: invoice.user,
-        by_user: by_user,
-        type: 'import',
-        title: 'นำสินค้าเข้าคลัง',
-        detail: 'สินค้าถูกนำเข้าคลังสินค้าเรียบร้อยแล้ว',
-      });
-      await alert.save();
-  
-      const io = req.app.get('socketio');
-      io.to(invoice.user.toString()).emit('action', { type: 'new_alert', data: alert });
-  
-      res.json(newArray);
+        await alert.save();
+
+        const io = req.app.get('socketio');
+        io.to(invoice.user.toString()).emit('action', { type: 'new_alert', data: alert });
+
+        res.json(newArray);
     } catch (err) {
-      console.log(err.message);
-      res.status(500).send(err.message);
+
+
+         return res.status(500).json(handleError(err))
     }
-  });
-  
+});
+
 
 router.post('/import_to_stocks', auth, async (req, res) => {
     const { list, user, remark } = req.body;
@@ -1631,7 +1642,7 @@ router.post('/import_to_stocks', auth, async (req, res) => {
                 stock.is_sub = true
                 if (sub_amount > 0) stock.current_sub_amount = sub_amount
             }
-           
+
             stock.current_amount = amount
             stock.amount = amount
             stock.user = user
@@ -1683,8 +1694,9 @@ router.post('/import_to_stocks', auth, async (req, res) => {
         res.json(newArray)
 
     } catch (err) {
-        console.log(err.message);
-        res.status(500).send(err.message)
+
+
+         return res.status(500).json(handleError(err))
     }
 })
 // router.post('/export_out_stock_prepare', auth,async (req,res)=> {
@@ -1865,13 +1877,14 @@ router.post('/export_out_stocks_from_user', [auth, upload_invoices.array('files'
         res.json(stock_out)
 
     } catch (err) {
-        console.log(err.message);
-        res.status(500).send(err.message)
+
+
+         return res.status(500).json(handleError(err))
     }
 })
 
 router.post('/export_out_stocks', [auth, upload_invoices.array('files')], async (req, res) => {
-    const { list, from, to, remark, driver = '', car_code = '',start_date, user } = req.body;
+    const { list, from, to, remark, driver = '', car_code = '', start_date, user } = req.body;
     console.log(req.body)
     try {
         let total_amount = 0
@@ -1886,17 +1899,17 @@ router.post('/export_out_stocks', [auth, upload_invoices.array('files')], async 
             const amount = stk_info.amount
             const sub_amount = stk_info.sub_amount
 
-            const stock =  await Stocks.findById(stk_info.stock).populate('product')
+            const stock = await Stocks.findById(stk_info.stock).populate('product')
             console.log(stk_info.stock)
             total_amount_origin += stock.current_amount
 
-           if(stock.product.sub_unit){
+            if (stock.product.sub_unit) {
                 stock.prepare_out_sub_amount = stock.prepare_out_sub_amount + sub_amount
-                stock.prepare_out = calculate_amount_by_sub_amount(stock.prepare_out_sub_amount,stock.product.item_per_unit)
-           }
-           else{
+                stock.prepare_out = calculate_amount_by_sub_amount(stock.prepare_out_sub_amount, stock.product.item_per_unit)
+            }
+            else {
                 stock.prepare_out = stock.prepare_out + amount
-           }
+            }
             stockObj.push(stock)
             newArray.push(stk_info)
             total_amount += amount
@@ -1925,7 +1938,7 @@ router.post('/export_out_stocks', [auth, upload_invoices.array('files')], async 
         stock_out.driver = driver
         stock_out.car_code = car_code
         stock_out.remark = remark
-        if(start_date) stock_out.start_date = start_date
+        if (start_date) stock_out.start_date = start_date
         stock_out.status = 'pending'
         if (req.files) {
             var array = []
@@ -1972,8 +1985,9 @@ router.post('/export_out_stocks', [auth, upload_invoices.array('files')], async 
         res.json(stock_out)
 
     } catch (err) {
-        console.log(err.message);
-        res.status(500).send(err.message)
+
+
+         return res.status(500).json(handleError(err))
     }
 })
 
@@ -2061,22 +2075,23 @@ router.post('/export_out_stocks', [auth, upload_invoices.array('files')], async 
 router.post('/list_customer', auth, async (req, res) => {
     try {
 
-        const list = await User.find({ admin: false})
+        const list = await User.find({ admin: false })
         console.log(list);
 
         res.json(list)
 
     } catch (err) {
-        console.log(err.message);
-        res.status(500).send(err.message)
+
+
+         return res.status(500).json(handleError(err))
     }
 })
 router.post('/list_invoice', auth, async (req, res) => {
-    const { user =null, search, status = null, start, end, type = 1, page = 1, limit = 10,sort='create_date',is_active = true } = req.body;
+    const { user = null, search, status = null, start, end, type = 1, page = 1, limit = 10, sort = 'create_date', is_active = true } = req.body;
     try {
 
         var query = {
-            is_active:is_active
+            is_active: is_active
         };
         if (start && end) query.create_date = { $gte: start, $lte: end }
         if (user !== null) query.user = user;
@@ -2089,7 +2104,7 @@ router.post('/list_invoice', auth, async (req, res) => {
             }
         };
 
-        if (type !== undefined  || type !== null) query.type = type;
+        if (type !== undefined || type !== null) query.type = type;
         if (search) {
             const searchRegex = new RegExp(search, 'i');
             if (parseInt(type) === 1) {
@@ -2116,11 +2131,11 @@ router.post('/list_invoice', auth, async (req, res) => {
             }
         }
         let sort_query = {
-            create_date:-1
+            create_date: -1
         }
-        if(sort === 'start_date'){
+        if (sort === 'start_date') {
             sort_query = {
-                start_date:1
+                start_date: 1
             }
         }
         console.log(query)
@@ -2148,36 +2163,38 @@ router.post('/list_invoice', auth, async (req, res) => {
         }
 
     } catch (err) {
-        console.log(err.message);
-        res.status(500).send(err.message)
+
+
+         return res.status(500).json(handleError(err))
     }
 })
 router.post('/list_invoice_schedule', auth, async (req, res) => {
-    const { user =null, month,year } = req.body;
-  
+    const { user = null, month, year } = req.body;
+
     try {
-      const query = {
-   
+        const query = {
+
             start_date: {
                 $gte: moment().startOf('month').month(month - 1).year(year).toDate(),
                 $lte: moment().endOf('month').month(month - 1).year(year).toDate(),
             },
-      };
-  
-      if (user) {
+        };
+
+        if (user) {
             query.user = user;
-      }
-    
-      const list = await Invoice.find(query).populate('user', '-password');
-  
-      console.log(list.length);
-  
-      res.json(list);
+        }
+
+        const list = await Invoice.find(query).populate('user', '-password');
+
+        console.log(list.length);
+
+        res.json(list);
     } catch (err) {
-      console.log(err.message);
-      res.status(500).send(err.message);
+
+
+         return res.status(500).json(handleError(err))
     }
-  });
+});
 router.post('/list_invoice_unlimit', auth, async (req, res) => {
     const { user, page = 1, limit = 10, type } = req.body;
     try {
@@ -2194,8 +2211,9 @@ router.post('/list_invoice_unlimit', auth, async (req, res) => {
         res.json(list)
 
     } catch (err) {
-        console.log(err.message);
-        res.status(500).send(err.message)
+
+
+         return res.status(500).json(handleError(err))
     }
 })
 router.post('/get_stock_by_array_id', auth, async (req, res) => {
@@ -2210,8 +2228,9 @@ router.post('/get_stock_by_array_id', auth, async (req, res) => {
         return res.json(list)
 
     } catch (err) {
-        console.log(err.message);
-        res.status(500).send(err.message)
+
+
+         return res.status(500).json(handleError(err))
     }
 })
 router.post('/get_invoice', auth, async (req, res) => {
@@ -2228,8 +2247,9 @@ router.post('/get_invoice', auth, async (req, res) => {
         return res.json(inv)
 
     } catch (err) {
-        console.log(err.message);
-        res.status(500).send(err.message)
+
+
+         return res.status(500).json(handleError(err))
     }
 })
 
@@ -2274,8 +2294,9 @@ router.post('/list_combine', auth, async (req, res) => {
 
 
     } catch (err) {
-        console.log(err.message);
-        res.status(500).send(err.message)
+
+
+         return res.status(500).json(handleError(err))
     }
 })
 
@@ -2289,8 +2310,9 @@ router.post('/update_stock', auth, async (req, res) => {
         res.json(stock)
 
     } catch (err) {
-        console.log(err.message);
-        res.status(500).send(err.message)
+
+
+         return res.status(500).json(handleError(err))
     }
 })
 router.post('/get_stock', auth, async (req, res) => {
@@ -2303,8 +2325,9 @@ router.post('/get_stock', auth, async (req, res) => {
         res.json(stk)
 
     } catch (err) {
-        console.log(err.message);
-        res.status(500).send(err.message)
+
+
+         return res.status(500).json(handleError(err))
     }
 })
 router.post('/change_zone_stock', auth, async (req, res) => {
@@ -2319,8 +2342,9 @@ router.post('/change_zone_stock', auth, async (req, res) => {
         res.json(stk)
 
     } catch (err) {
-        console.log(err.message);
-        res.status(500).send(err.message)
+
+
+         return res.status(500).json(handleError(err))
     }
 })
 router.post('/remove_stock', auth, async (req, res) => {
@@ -2336,8 +2360,9 @@ router.post('/remove_stock', auth, async (req, res) => {
         res.json(stk)
 
     } catch (err) {
-        console.log(err.message);
-        res.status(500).send(err.message)
+
+
+         return res.status(500).json(handleError(err))
     }
 })
 router.post('/delete_invoice', auth, async (req, res) => {
@@ -2353,8 +2378,9 @@ router.post('/delete_invoice', auth, async (req, res) => {
         res.json(invoice)
 
     } catch (err) {
-        console.log(err.message);
-        res.status(500).send(err.message)
+
+
+         return res.status(500).json(handleError(err))
     }
 })
 router.post('/get_stocks_history', auth, async (req, res) => {
@@ -2367,8 +2393,9 @@ router.post('/get_stocks_history', auth, async (req, res) => {
         res.json(list)
 
     } catch (err) {
-        console.log(err.message);
-        res.status(500).send(err.message)
+
+
+         return res.status(500).json(handleError(err))
     }
 })
 router.post('/list_noti_customer', auth, async (req, res) => {
@@ -2394,52 +2421,57 @@ router.post('/list_noti_customer', auth, async (req, res) => {
             unReadCount,
         });
     } catch (error) {
-        console.error(error);
-        res.status(500).send('Server Error');
+
+
+         return res.status(500).json(handleError(err))
     }
 });
 router.post('/list_noti_customer_page', auth, async (req, res) => {
-    const {user, page = 1, limit = 10 } = req.body;
+    const { user, page = 1, limit = 10 } = req.body;
 
     try {
         var query = {
-            user:req.user.id
+            user: req.user.id
         };
-      
+
         const list = await Notification.find(query).populate('invoice').populate('by_user', '-password').populate('user', '-password').sort({ create_date: -1 }).skip((page - 1) * limit).limit(limit);
         const total = await Notification.countDocuments(query);
         console.log(list);
-    
+
         res.json({
             page: page,
             list: list,
             total: total
         })
     } catch (error) {
-        res.status(500).send('Server Error');
+
+
+         return res.status(500).json(handleError(err))
     }
-   
+
 });
 router.post('/list_noti_staff_page', auth, async (req, res) => {
-    const {user, page = 1, limit = 10 } = req.body;
+    const { user, page = 1, limit = 10 } = req.body;
 
     try {
         var query = {
         };
-        
+
         const list = await AdminNotification.find(query).populate('invoice').populate('by_user', '-password').populate('user', '-password').sort({ create_date: -1 }).skip((page - 1) * limit).limit(limit);
         const total = await AdminNotification.countDocuments(query);
         console.log(list);
-    
+
         res.json({
             page: page,
             list: list,
             total: total
         })
     } catch (error) {
-        res.status(500).send('Server Error');
+
+
+         return res.status(500).json(handleError(err))
     }
-   
+
 });
 router.post('/list_noti_staff', auth, async (req, res) => {
     try {
@@ -2457,8 +2489,9 @@ router.post('/list_noti_staff', auth, async (req, res) => {
             unReadCount,
         });
     } catch (error) {
-        console.error(error);
-        res.status(500).send('Server Error');
+
+
+         return res.status(500).json(handleError(err))
     }
 });
 router.post('/set_read_customer_noti', auth, async (req, res) => {
@@ -2477,8 +2510,9 @@ router.post('/set_read_customer_noti', auth, async (req, res) => {
             return res.json([]);
         }
     } catch (error) {
-        console.error(error);
-        res.status(500).send('Server Error');
+
+
+         return res.status(500).json(handleError(err))
     }
 });
 router.post('/set_read_admin_noti', auth, async (req, res) => {
@@ -2495,8 +2529,9 @@ router.post('/set_read_admin_noti', auth, async (req, res) => {
             return res.json([]);
         }
     } catch (error) {
-        console.error(error);
-        res.status(500).send('Server Error');
+
+
+         return res.status(500).json(handleError(err))
     }
 });
 router.post('/list_alert', auth, async (req, res) => {
@@ -2530,8 +2565,9 @@ router.post('/list_alert', auth, async (req, res) => {
         }
 
     } catch (err) {
-        console.log(err.message);
-        res.status(500).send(err.message)
+
+
+         return res.status(500).json(handleError(err))
     }
 })
 
@@ -2548,8 +2584,9 @@ router.post('/alert_count', auth, async (req, res) => {
         }
 
     } catch (err) {
-        console.log(err.message);
-        res.status(500).send(err.message)
+
+
+         return res.status(500).json(handleError(err))
     }
 })
 router.post('/set_read_alert', auth, async (req, res) => {
@@ -2578,8 +2615,9 @@ router.post('/set_read_alert', auth, async (req, res) => {
         }
 
     } catch (err) {
-        console.log(err.message);
-        res.status(500).send(err.message)
+
+
+         return res.status(500).json(handleError(err))
     }
 })
 
@@ -2616,8 +2654,9 @@ router.post('/get_category', auth, async (req, res) => {
         res.json(list)
 
     } catch (err) {
-        console.log(err.message);
-        res.status(500).send(err.message)
+
+
+         return res.status(500).json(handleError(err))
     }
 })
 router.post('/get_user', auth, async (req, res) => {
@@ -2625,13 +2664,14 @@ router.post('/get_user', auth, async (req, res) => {
     const { } = req.body;
     try {
 
-        const list = await User.find({is_active:true})
+        const list = await User.find({ is_active: true })
 
         res.json(list)
 
     } catch (err) {
-        console.log(err.message);
-        res.status(500).send(err.message)
+
+
+         return res.status(500).json(handleError(err))
     }
 })
 router.post('/save_stock_to_history', auth, async (req, res) => {
@@ -2681,8 +2721,9 @@ router.post('/save_stock_to_history', auth, async (req, res) => {
         res.json(h_list)
 
     } catch (err) {
-        console.log(err.message);
-        res.status(500).send(err.message)
+
+
+         return res.status(500).json(handleError(err))
     }
 })
 router.post('/list_notes', auth, async (req, res) => {
@@ -2736,8 +2777,9 @@ router.post('/list_notes', auth, async (req, res) => {
             total: total,
         });
     } catch (err) {
-        console.log(err.message);
-        res.status(500).send(err.message);
+
+
+         return res.status(500).json(handleError(err))
     }
 });
 
@@ -2808,8 +2850,9 @@ router.post('/list_history', auth, async (req, res) => {
             total: total,
         });
     } catch (err) {
-        console.log(err.message);
-        res.status(500).send(err.message);
+
+
+         return res.status(500).json(handleError(err))
     }
 
 
@@ -2832,8 +2875,9 @@ router.post('/remove_stocks_history', auth, async (req, res) => {
         res.json(list)
 
     } catch (err) {
-        console.log(err.message);
-        res.status(500).send(err.message)
+
+
+         return res.status(500).json(handleError(err))
     }
 })
 // router.get('/reset_data', async (req, res) => {
@@ -2892,8 +2936,9 @@ router.get('/add_dummy_data', async (req, res) => {
         res.json(name)
 
     } catch (err) {
-        console.log(err.message);
-        res.status(500).send(err.message)
+
+
+         return res.status(500).json(handleError(err))
     }
 })
 
@@ -2924,8 +2969,9 @@ router.get('/send_notifications', async (req, res) => {
         res.json('')
 
     } catch (err) {
-        console.log(err.message);
-        res.status(500).send(err.message)
+
+
+         return res.status(500).json(handleError(err))
     }
 })
 router.post('/send_data_with_socket', async (req, res) => {
@@ -2985,8 +3031,9 @@ router.post('/send_data_with_socket', async (req, res) => {
         res.json({})
 
     } catch (err) {
-        console.log(err.message);
-        res.status(500).send(err.message)
+
+
+         return res.status(500).json(handleError(err))
     }
 })
 module.exports = router; 

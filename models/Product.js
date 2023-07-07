@@ -61,6 +61,10 @@ const ProductSchema = new mongoose.Schema({
         type:Number,
         default:0
     },
+    item_in_pallate:{
+        type:Number,
+        default:0
+    },
     image:{
             type:String
     },

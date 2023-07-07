@@ -35,6 +35,11 @@ const ZoneSchema = new mongoose.Schema({
         type:Boolean,
         default:true
     },
+    pallet:{
+        type:mongoose.Schema.Types.ObjectId,
+        ref:'pallet',
+    },
+    
     create_date : {
         type : Date,
         default : Date.now

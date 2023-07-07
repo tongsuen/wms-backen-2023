@@ -122,12 +122,11 @@ const StocksSchema = new mongoose.Schema({
         type:Boolean,
         default:true
     },
-    shared:[
-        {
-            type:mongoose.Schema.Types.ObjectId,
-            ref:'stock',
-        },
-    ],
+    pallet:{
+        type:mongoose.Schema.Types.ObjectId,
+        ref:'pallet',
+    },
+ 
     live_date : {//time stock put in location in warehouse
         type : Date,
     },
@@ -140,7 +139,12 @@ const StocksSchema = new mongoose.Schema({
     create_date : {
         type : Date,
         default : Date.now
-    }
+    },
+    tags:[
+        {
+            type:String
+        }
+    ]
 });
 
 StocksSchema.pre('save', async function (next) {
@@ -166,5 +170,6 @@ StocksSchema.pre('save', async function (next) {
       next(error);
     }
 });
-StocksSchema.index({name:'text',lot_number:'text',product_code:'text',note:'text'});
+   
+StocksSchema.index({name:'text',lot_number:'text',product_code:'text',note:'text',zone:1,inventory:1,product:1});
 module.exports = Stocks = mongoose.model('stocks',StocksSchema)

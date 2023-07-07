@@ -9,16 +9,20 @@ const auth =require('../../middleware/auth')
 const auth_admin =require('../../middleware/auth_admin')
 
 const {upload_avatar} = require('../../s3')
+const {handleError} = require('../../utils/handleError')
 
 
 router.post('/me', auth,async (req,res)=> {
     try {
         const user = await User.findById(req.user.id).select('-password');
+    
+
         res.json(user)
 
     }catch(err){
-        console.log(err.message);
-        res.status(500).send(err.message)
+            
+     return res.status(500).json(handleError(err))
+
     }
 })
 
@@ -58,8 +62,8 @@ async (req,res)=> {
             res.json({token})
         });
      }catch(err){
-        console.log(err.message);
-        res.status(500).send("Server error");
+
+         return res.status(500).json(handleError(err))
      }
 });
 router.post('/reset_password',
@@ -89,8 +93,8 @@ async (req,res)=> {
 
         return res.json({success:1,email:user.email})
      }catch(err){
-        console.log(err.message);
-        res.status(500).send("Server error");
+       
+         return res.status(500).json(handleError(err))
      }
 });
 
@@ -113,8 +117,8 @@ router.post('/new_password', auth_admin, async (req, res) => {
   
       res.json({ message: 'Password changed successfully' });
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ error: 'Server error' });
+      
+         return res.status(500).json(handleError(err))
     }
   });
 
@@ -161,8 +165,8 @@ async (req,res)=> {
         return res.json('Check your email')
 
      }catch(err){
-        console.log(err.message);
-        res.status(500).send("Server error");
+       
+         return res.status(500).json(handleError(err))
      }
 });
 router.post('/register',upload_avatar.single('avatar'),async (req,res)=> {
@@ -247,8 +251,8 @@ router.post('/register',upload_avatar.single('avatar'),async (req,res)=> {
          );
 
     } catch (error) {
-        console.log(error.message);
-        res.status(500).send('Server error '+error.message);
+       
+     return res.status(500).json(handleError(err))
     }
 })
 module.exports = router;

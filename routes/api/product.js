@@ -23,6 +23,7 @@ const Notification = require('../../models/Notification')
 const AdminNotification = require('../../models/AdminNotification') 
 const Location = require('../../models/Location') 
 const Product = require('../../models/Product') 
+const { handleError } = require('../../utils/handleError')
 
 
 router.post('/create',[auth,upload_inventories.array('images')],async (req,res)=> {
@@ -30,6 +31,11 @@ router.post('/create',[auth,upload_inventories.array('images')],async (req,res)=
     try {
         console.log(req.files);//req.file.path
         console.log(req.body);
+        const name = req.body.name
+        const old = await Product.findOne({name:name})
+        if(old){
+            return res.status(400).json({ message: 'product name is already exist!' })
+        }
         const product = new Product(req.body)
         await Promise.all(req.files.map(async (file) => {
             product.images.push(file.location)
@@ -41,8 +47,9 @@ router.post('/create',[auth,upload_inventories.array('images')],async (req,res)=
         return res.status(200).send(product)
         
     }catch(err){
-        console.log(err.message);
-        res.status(500).send(err.message)
+        
+       
+         return res.status(500).json(handleError(err))
     }
 })
 router.post('/list_for_select',[auth],async (req,res)=> {
@@ -65,8 +72,8 @@ router.post('/list_for_select',[auth],async (req,res)=> {
 
         res.json(list)
     }catch(err){
-        console.log(err.message);
-        res.status(500).send(err.message)
+       
+         return res.status(500).json(handleError(err))
     }
 })
 router.post('/list', [auth], async (req, res) => {
@@ -102,8 +109,8 @@ router.post('/list', [auth], async (req, res) => {
         total: total
       });
     } catch (err) {
-      console.log(err.message);
-      res.status(500).send(err.message);
+       
+         return res.status(500).json(handleError(err))
     }
   });
   
@@ -128,8 +135,8 @@ router.post('/list_stock_by_product',[auth],async (req,res)=> {
        
 
     }catch(err){
-        console.log(err.message);
-        res.status(500).send(err.message)
+       
+         return res.status(500).json(handleError(err))
     }
 })
 router.post('/get',auth,async (req,res)=> {
@@ -141,8 +148,8 @@ router.post('/get',auth,async (req,res)=> {
         return res.status(200).send(product)
         
     }catch(err){
-        console.log(err.message);
-        res.status(500).send(err.message)
+       
+         return res.status(500).json(handleError(err))
     }
 })
 router.post('/remove',auth,async (req,res)=> {
@@ -155,8 +162,8 @@ router.post('/remove',auth,async (req,res)=> {
         return res.status(200).send(product)
         
     }catch(err){
-        console.log(err.message);
-        res.status(500).send(err.message)
+       
+         return res.status(500).json(handleError(err))
     }
 })
 router.post('/update', [auth,upload_inventories.array('images')],async (req,res)=> {
@@ -221,6 +228,7 @@ router.post('/update', [auth,upload_inventories.array('images')],async (req,res)
                     );
                 }
                 if(!req.user.admin){
+
                     const alert = new AdminNotification({
                         product: data._id,
                         type: 'update',
@@ -232,13 +240,14 @@ router.post('/update', [auth,upload_inventories.array('images')],async (req,res)
                     const io = req.app.get('socketio');
                     io.to('admin').emit('action', { type: 'new_alert', data: alert });
                     alert.save()
+                    
                 }
                 return res.json(data);
             }
         });
     }catch(err){
-        console.log(err.message);
-        res.status(500).send(err.message)
+       
+         return res.status(500).json(handleError(err))
     }
 })
 
