@@ -3,19 +3,19 @@ const mongoose = require('mongoose');
 const MoveSchema = new mongoose.Schema({
 
     from:{
-       stock:{
+        stock:{
             type:mongoose.Schema.Types.ObjectId,
             ref:'stocks',
-       },
-       zone:{
+        },
+        zone:{
             type:mongoose.Schema.Types.ObjectId,
             ref:'zone',
-       },
-       amount:{
+        },
+        amount:{
            type:Number
-       },
-       sub_amount:{
-        type:Number
+        },
+        sub_amount:{
+            type:Number
         }
     },
     to:{
@@ -46,7 +46,6 @@ const MoveSchema = new mongoose.Schema({
             type:String
         }
     ],
-  
     flow_balance:{
         bring_forward:{
             type:Number,
