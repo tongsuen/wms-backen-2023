@@ -203,6 +203,57 @@ router.post('/update_request_invoice', auth, async (req, res) => {
 
   }
 })
+router.post('/return_action_invoice_out',auth, async (req, res) => {// 19/06 
+  try {
+    const {invoice_id} = req.body
+    if(!invoice_id){
+        return res
+        .status(400)
+        .json({ message: 'need field invoice_id' });
+    }
+    const invoice = await Invoice.findById(invoice_id)
+    if(!invoice){
+        return res
+        .status(400)
+        .json({ message: 'invoice not found' });
+    }
+    if(invoice.status !== 'accept'){
+      return res
+      .status(400)
+      .json({ message: 'invoice status must be already complete' });
+    }
+    await StockTask.deleteMany({invoice:invoice})
+
+      for (let i = 0; i < invoice.export_list.length; i++) {
+        const item = invoice.export_list[i];
+        const stock = await Stocks.findById(item.stock).populate('product')
+        if(item.sub_amount)
+          {
+            stock.current_sub_amount = stock.current_sub_amount + item.sub_amount
+            stock.current_amount = calculate_amount_by_sub_amount(stock.current_sub_amount,stock.product.item_per_unit)
+
+          }
+          else{
+            stock.current_amount = stock.current_amount + item.amount
+
+          }
+          if(stock.out_date) {
+            stock.out_date = null
+            stock.status = 'warehouse'
+          }
+          console.log(stock)
+          await stock.save()
+      }
+    invoice.is_active = false
+    invoice.status='decline'
+    await invoice.save()
+    res.json(invoice);
+  } catch (err) {
+     return res.status(500).json(handleError(err))
+
+  }
+});
+
 router.post('/list_stock_out_pending', auth, async (req, res) => {
   const { user, page = 1, limit = 10 } = req.body;
   try {
@@ -643,7 +694,7 @@ router.post('/move_stock', auth, async (req, res) => {
       newStock.unit = stk.unit
       newStock.live_date = new Date(),
 
-        newStock.user = stk.user
+      newStock.user = stk.user
       newStock.zone = z
       const flowBalance = {
         balance: stk.current_amount,
@@ -779,6 +830,7 @@ router.post('/combine_stock', auth, async (req, res) => {
       current_amount: stocksInfo[0].product.sub_unit ? calculate_amount_by_sub_amount(totalSubAmount, stocksInfo[0].product.item_per_unit) : totalAmount,
       current_sub_amount: totalSubAmount,
       live_date: new Date(),
+      tags:stockInfo[0].tags
     });
     console.log(combinedStock)
 
@@ -882,7 +934,38 @@ router.post('/update_file', auth, async (req, res) => {
 
   }
 });
+router.post('/update_stock_export_from_invoice', auth, async (req, res) => {
+  const { invoice_id, stock_id,amount,sub_amount } = req.body;
 
+  try {
+    const invoice = await Invoice.findById(invoice_id)
+    const stock = await StockTask.findById(stock_id)
+
+    await StockTask.deleteMany({stock:stock,invoice:invoice})
+    const index = array.findIndex(obj => obj.stock === stock);
+    invoice.export_list[index] = {
+      ...invoice.export_list[index],
+      amount:amount,
+      sub_amount:sub_amount
+    }
+
+    const newTask = new StockTask()
+          newTask.stock = stock
+          newTask.amount = amount
+          newTask.sub_amount = sub_amount
+          newTask.invoice = invoice_id
+          newTask.type = 'out'
+          newTask.stock_status = stock.status
+          newTask.start_date = stock_out.start_date
+          await newTask.save()
+    await invoice.save()
+    res.json(invoice);
+  } catch (err) {
+
+     return res.status(500).json(handleError(err))
+
+  }
+});
 router.post('/get_tasks_stock', auth, async (req, res) => {
   const { stock_id } = req.body;
 
@@ -1276,9 +1359,10 @@ router.post('/create_zone', async (req, res) => {
 
     const old_zone = await Zone.findOne({ main: main, x: x, y: y })
     if(old_zone){
-      return res
-      .status(400)
-      .json({ message: 'Already have this zone' });
+      old_zone.is_active = true
+      if(!old_zone.pallet)  old_zone.pallet = palletList[0]
+      await old_zone.save()
+      return res.json(old_zone);
     }
     const zone = new Zone({
             main: main,
@@ -1320,7 +1404,7 @@ router.post('/create_zone', async (req, res) => {
 
 
     //await zone.save()
-    res.json([]);
+    res.json(zone);
   } catch (err) {
 
      return res.status(500).json(handleError(err))
@@ -1413,13 +1497,42 @@ router.post('/active_pallet', async (req, res) => {
 
   }
 });
+
+router.post('/list_stock_by_zones',auth, async (req, res) => {
+  try {
+    const {zones_id} = req.body
+    const list = await Stocks.find({zone:{
+      $in:zones_id
+      },
+      status:'warehouse'
+    
+    }).populate('product')
+    res.json(list);
+  } catch (err) {
+
+     return res.status(500).json(handleError(err))
+
+  }
+});
 router.post('/delete_zone', async (req, res) => {
   try {
-
-    const zone = await Zone.findOne({ _id: req.body.zone_id })
-    zone.is_active = !zone.is_active
-    await zone.save()
-    res.json({ zone });
+    const {zone_id,zones_id} = req.body
+    if(zone_id){
+      const zone = await Zone.findOne({ _id: req.body.zone_id })
+      zone.is_active = !zone.is_active
+      await zone.save()
+      res.json({ zone });
+    }
+    else{
+      const zoneList = await Zone.find({ _id: {$in:zones_id} })
+      for (let i = 0; i < zoneList.length; i++) {
+        const zone = zoneList[i];
+        zone.is_active = !zone.is_active
+        await zone.save()
+      }
+      res.json({ msg:'success' });
+    }
+    
   } catch (err) {
 
      return res.status(500).json(handleError(err))
@@ -1762,31 +1875,7 @@ router.get('/update_data_amount', async (req, res) => {
 
   }
 });
-router.get('/test_error', async (req, res) => {// 19/06 
-  try {
 
-    // const pls = new Pallet()
-    // pls.width = 1 110 110 100 80
-    // pls.long = 1
-    // pls.height = 0.5
-    // pls.name='mp pallet'
-    // await pls.save()
-    const pls = await Pallet.findById('64a5076af8e2f8525a09086e')
-    const stkList = await Zone.find()
-
-    for (let i = 0; i < stkList.length; i++) {
-      const stk = stkList[i];
-    
-      stk.pallet = pls
-      await stk.save()
-      console.log(stk.pallet)
-    }
-    res.json(stkList);
-  } catch (err) {
-     return res.status(500).json(handleError(err))
-
-  }
-});
 router.get('/update_some_data', async (req, res) => {// 19/06 
   try {
     let array = []

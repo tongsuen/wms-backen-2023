@@ -76,7 +76,6 @@ const StocksSchema = new mongoose.Schema({
             default : Date.now
         }
     }],
-
     name:{
             type:String,
     },
@@ -164,6 +163,7 @@ StocksSchema.pre('save', async function (next) {
           newRefNumber = 'INV-0001';
         }
         this.ref_number = newRefNumber;
+      
       }
       next();
     } catch (error) {

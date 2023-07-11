@@ -477,13 +477,19 @@ router.post('/update_inventory', [auth, upload_inventories.array('images')], asy
             query.images = array;
         }
 
-        Inventory.findOneAndUpdate({ _id: query.inv_id }, { $set: query }, { new: true, upsert: false }, function (err, data) {
+        Inventory.findOneAndUpdate({ _id: query.inv_id }, { $set: query }, { new: true, upsert: false },async function (err, data) {
             if (err) {
                 console.log(err);
                 return res.status(500).json(err);
             } else {
                 console.log(data);
-
+                const listStock = await Stocks.find({inventory:query.inv_id})
+                for (let i = 0; i < listStock.length; i++) {
+                    const stock = listStock[i];
+                    stock.lot_number = data.lot_number
+                    stock.product_code = data.product_code
+                    await stock.save()
+                }
                 return res.json(data);
             }
         });
@@ -599,11 +605,16 @@ router.post('/list_stocks', auth, async (req, res) => {
         }
         if (search) {
             const searchRegex = new RegExp(search, 'i');
-            query.$or = [
-                { lot_number: { $regex: searchRegex } },
-                { name: { $regex: searchRegex } },
-                { product_code: { $regex: searchRegex } },
-            ];
+            query = {
+                $or:[
+                            {name:{ $regex: searchRegex } },
+                            {main_code:{ $regex: searchRegex } },
+                            {sub_code:{ $regex: searchRegex } },
+                            {lot_number:{ $regex: searchRegex } },
+                            {product_code:{ $regex: searchRegex } },
+                    ]
+                }
+      
         }
         if (is_expire) {
 
@@ -611,7 +622,7 @@ router.post('/list_stocks', auth, async (req, res) => {
             query.inventory = { $in: expiringInventory.map(item => item._id) }
 
         }
-        console.log(sort_query);
+        console.log(query);
         // if(search) {
         //     query.inventory = {name:{$regex : search}} ;
         // }
@@ -1519,6 +1530,7 @@ router.post('/import_to_stocks_by_invoice', auth, async (req, res) => {
             stock.unit = inv.unit;
             stock.inventory = inv;
             stock.product = inv.product;
+           
             if (inv.product.sub_unit) {
 
                 stock.is_sub = true
